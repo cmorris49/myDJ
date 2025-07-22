@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Request a Song</title>
+</head>
+<body>
+  <h1>Request a Song</h1>
+  <input id="trackInput" type="text" placeholder="Search for a song">
+  <button onclick="searchTrack()">Search</button>
+
+  <ul id="results"></ul>
+
+  <script>
+  async function searchTrack() {
+    const track = document.getElementById('trackInput').value;
+    const res = await fetch(`/search?track=${encodeURIComponent(track)}`);
+    const data = await res.json();
+
+    const results = document.getElementById('results');
+    results.innerHTML = '';
+
+    if (!Array.isArray(data)) {
+      alert("Error: " + (data.error || "Unknown error"));
+      return;
+    }
+
+    data.forEach(t => {
+      const li = document.createElement('li');
+      li.textContent = `${t.name} by ${t.artists.map(a => a.name).join(', ')}`;
+      const btn = document.createElement('button');
+      btn.textContent = "Request";
+      btn.onclick = () => submitRequest(t.name);
+      li.appendChild(btn);
+      results.appendChild(li);
+    });
+  }
+  async function submitRequest(trackName) {
+    const res = await fetch('/request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ track: trackName })
+    });
+    alert(await res.text());
+  }
+
+  async function loadRequests() {
+    const res = await fetch('/requests');
+    const tracks = await res.json();
+
+    const requestList = document.getElementById('requestList');
+    requestList.innerHTML = '';
+
+    tracks.forEach(name => {
+      const li = document.createElement('li');
+      li.textContent = name;
+      requestList.appendChild(li);
+    });
+  }
+
+  </script>
+
+  <hr>
+  <h2>📋 Requested Songs</h2>
+  <button onclick="loadRequests()">Refresh List</button>
+  <ul id="requestList"></ul>
+
+</body>
+</html>
