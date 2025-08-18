@@ -1,0 +1,81 @@
+.root {
+  -fx-background-color: white;
+}
+.split-pane {
+  -fx-background-color: white;
+}
+.split-pane > .split-pane-divider {
+  -fx-background-color: #ccc;   
+}
+.list-view {
+  -fx-background-color: white;
+}
+.list-view .cell {
+  -fx-background-color: white;
+  -fx-text-fill: black;
+}
+.scroll-bar {
+  -fx-background-color: transparent;
+}
+.scroll-bar > .track {
+  -fx-background-color: #eee;  
+}
+.scroll-bar > .thumb {
+  -fx-background-color: #bbb;  
+  -fx-background-insets: 2;
+  -fx-background-radius: 4;
+}
+.scroll-bar > .increment-button,
+.scroll-bar > .decrement-button {
+  -fx-background-color: transparent;
+  -fx-shape: "";
+}
+.label,
+.button,
+.combo-box,
+.combo-box .list-cell {
+  -fx-text-fill: black;
+}
+.button,
+.toggle-button,
+.menu-button {
+  -fx-focus-color: #1DB954;        
+  -fx-faint-focus-color: transparent; 
+}
+.toggle-button:selected,
+.menu-button:focused {
+  -fx-border-color: #1DB954;
+  -fx-border-width: 2;
+}
+#theme-toggle,
+#theme-toggle:focused,
+#theme-toggle:selected {
+  -fx-border-color: transparent;      
+  -fx-focus-color: transparent;       
+  -fx-faint-focus-color: transparent; 
+}
+#theme-toggle {
+  -fx-border-color: #1DB954;
+  -fx-border-width: 2;
+  -fx-border-radius: 4;
+}
+.toggle-button:selected {
+  -fx-border-color: #1DB954;
+  -fx-border-width: 2;
+  -fx-border-radius: 4;
+}
+.button:focused,
+.menu-button:focused,
+.combo-box:focused {
+  -fx-focus-color: #1DB954;        
+  -fx-faint-focus-color: transparent;
+}
+.button:focused,
+.menu-button:focused,
+.combo-box:focused {
+  -fx-border-color: #1DB954;
+  -fx-border-width: 2;
+  -fx-border-radius: 4;
+}
+
+
