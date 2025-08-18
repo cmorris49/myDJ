@@ -1,68 +1,30 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Request a Song</title>
+  <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-  <h1>Request a Song</h1>
-  <input id="trackInput" type="text" placeholder="Search for a song">
-  <button onclick="searchTrack()">Search</button>
+  <div class="wrap">
+    <div class="card">
+      <h1>Request a Song</h1>
+      <p class="sub">Your request is more likely to be played if it matches our preferred genres.</p>
+      <div id="genres" class="genres" aria-live="polite"></div>
 
-  <ul id="results"></ul>
+      <div class="search" role="search">
+        <input id="trackInput" type="text" placeholder="Search for a song or artist" autocomplete="off" />
+        <button id="searchBtn">Search</button>
+      </div>
 
-  <script>
-  async function searchTrack() {
-    const track = document.getElementById('trackInput').value;
-    const res = await fetch(`/search?track=${encodeURIComponent(track)}`);
-    const data = await res.json();
+      <div id="results" class="results" role="list"></div>
+      <div id="empty" class="empty" hidden>Start a search to see results.</div>
+    </div>
+  </div>
 
-    const results = document.getElementById('results');
-    results.innerHTML = '';
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-    if (!Array.isArray(data)) {
-      alert("Error: " + (data.error || "Unknown error"));
-      return;
-    }
-
-    data.forEach(t => {
-      const li = document.createElement('li');
-      li.textContent = `${t.name} by ${t.artists.map(a => a.name).join(', ')}`;
-      const btn = document.createElement('button');
-      btn.textContent = "Request";
-      btn.onclick = () => submitRequest(t.name);
-      li.appendChild(btn);
-      results.appendChild(li);
-    });
-  }
-  async function submitRequest(trackName) {
-    const res = await fetch('/request', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ track: trackName })
-    });
-    alert(await res.text());
-  }
-
-  async function loadRequests() {
-    const res = await fetch('/requests');
-    const tracks = await res.json();
-
-    const requestList = document.getElementById('requestList');
-    requestList.innerHTML = '';
-
-    tracks.forEach(name => {
-      const li = document.createElement('li');
-      li.textContent = name;
-      requestList.appendChild(li);
-    });
-  }
-
-  </script>
-
-  <hr>
-  <h2>📋 Requested Songs</h2>
-  <button onclick="loadRequests()">Refresh List</button>
-  <ul id="requestList"></ul>
-
+  <script src="/js/app.js"></script>
 </body>
 </html>
