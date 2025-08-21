@@ -14,6 +14,10 @@ input.addEventListener('input', () => {
 
 searchBtn.addEventListener('click', searchTrack);
 
+function qp(name){ 
+  const u = new URL(window.location.href); 
+  return u.searchParams.get(name) || ""; 
+}
 
 async function searchTrack() {
   const query = input.value.trim();
@@ -84,10 +88,21 @@ async function submitRequest(trackUri) {
     showToast('Could not request this track (missing URI).', true);
     return;
   }
+
+  const owner = qp("owner");
+  const sig = qp("sig") || "";
+
+  if (!owner) {
+    showToast('This page was opened without a valid business QR. Please scan the QR again.', true);
+    return;
+  }
+
+  const qs = new URLSearchParams({ owner, sig }).toString();
+
   try {
-    const res = await fetch('/request', {
+    const res = await fetch(`/request?${qs}`, {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
+      headers: { 'Content-Type':'application/json' },
       body: JSON.stringify({ uri: trackUri })
     });
     const text = await res.text();
@@ -95,17 +110,12 @@ async function submitRequest(trackUri) {
       console.error(text);
       showToast('Request failed. Try again.', true);
     } else {
-      showToast('Requested! Thanks ✨');
+      showToast('Requested! Thanks.');
     }
-  } catch (err) {
-    console.error(err);
+  } catch (e) {
+    console.error(e);
     showToast('Network error. Try again.', true);
   }
-}
-
-function setLoading(isLoading) {
-  searchBtn.disabled = isLoading;
-  searchBtn.textContent = isLoading ? 'Searching…' : 'Search';
 }
 
 let toastTimer;

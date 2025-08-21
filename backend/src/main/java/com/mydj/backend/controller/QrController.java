@@ -12,6 +12,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
@@ -30,6 +33,9 @@ public class QrController {
     @Value("${frontend.url:https://example.com/}")
     private String frontendUrl;
 
+    @Value("${qr.signing.secret:}")
+    private String signingSecret;
+
     private boolean isAuthenticated() {
         try {
             spotifyService.getCurrentUserProfile();
@@ -45,7 +51,9 @@ public class QrController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         var me = spotifyService.getCurrentUserProfile();
-        String withOwner = appendParam(url, "owner", me.getId());
+        String owner = me.getId();
+        String sig = signingSecret.isEmpty() ? "" : hmac(owner, signingSecret);
+        String withOwner = appendParam(appendParam(url, "owner", owner), "sig", sig);
         return renderQr(withOwner);
     }
 
@@ -55,8 +63,10 @@ public class QrController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         var me = spotifyService.getCurrentUserProfile();
-        String url = appendParam(frontendUrl, "owner", me.getId());
-        return qr(url);
+        String owner = me.getId();
+        String sig = signingSecret.isEmpty() ? "" : hmac(owner, signingSecret);
+        String url = appendParam(appendParam(frontendUrl, "owner", owner), "sig", sig);
+        return renderQr(url);
     }
 
     private ResponseEntity<byte[]> renderQr(String data) throws Exception {
@@ -65,7 +75,6 @@ public class QrController {
         BitMatrix matrix = new MultiFormatWriter().encode(
                 data, BarcodeFormat.QR_CODE, 600, 600, hints);
         BufferedImage img = MatrixToImageWriter.toBufferedImage(matrix);
-
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         ImageIO.write(img, "PNG", out);
 
@@ -80,6 +89,15 @@ public class QrController {
         return base + sep
                 + URLEncoder.encode(key, StandardCharsets.UTF_8)
                 + "="
-                + URLEncoder.encode(value, StandardCharsets.UTF_8);
+                + URLEncoder.encode(value == null ? "" : value, StandardCharsets.UTF_8);
+    }
+
+    private static String hmac(String data, String secret) throws Exception {
+        Mac mac = Mac.getInstance("HmacSHA256");
+        mac.init(new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
+        byte[] raw = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
+        StringBuilder sb = new StringBuilder(raw.length * 2);
+        for (byte b : raw) sb.append(String.format("%02x", b));
+        return sb.toString();
     }
 }

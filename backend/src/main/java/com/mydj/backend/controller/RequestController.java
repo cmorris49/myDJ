@@ -6,28 +6,42 @@ import com.mydj.backend.service.SpotifyService;
 import com.mydj.backend.util.UriUtils;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import se.michaelthelin.spotify.model_objects.specification.Artist;
 import se.michaelthelin.spotify.model_objects.specification.Track;
 import se.michaelthelin.spotify.model_objects.specification.Paging;
-
 import java.util.*;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
+import org.springframework.beans.factory.annotation.Value;
+import com.mydj.backend.service.RequestQueueService;
+import com.mydj.backend.service.RequestReclassifier;
+
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
 
 @RestController
 public class RequestController {
 
     private final SpotifyService spotifyService;
     private final RequestClassificationService classificationService;
+    private final RequestQueueService queues;
+    private final RequestReclassifier reclassifier;
 
-    private final List<RequestRecord> validRequests = new CopyOnWriteArrayList<>();
-    private final List<RequestRecord> invalidRequests = new CopyOnWriteArrayList<>();
-
-    public RequestController(SpotifyService spotifyService,
-                             RequestClassificationService classificationService) {
-        this.spotifyService = spotifyService;
+    public RequestController(RequestClassificationService classificationService,
+                            SpotifyService spotifyService,
+                            RequestQueueService queues,
+                            RequestReclassifier reclassifier) {
         this.classificationService = classificationService;
+        this.spotifyService = spotifyService;
+        this.queues = queues;
+        this.reclassifier = reclassifier;
+    }
+
+    @Value("${qr.signing.secret:}")
+    private String signingSecret;
+
+    private String currentOwner() throws Exception {
+        return spotifyService.getCurrentUserProfile().getId();
     }
 
     @GetMapping("/search")
@@ -45,29 +59,40 @@ public class RequestController {
     }
 
     @GetMapping("/requests")
-    public ResponseEntity<Map<String, List<Map<String, String>>>> getRequests() {
-        List<Map<String, String>> valid = validRequests.stream()
-            .map(RequestRecord::toMap)
-            .collect(Collectors.toList());
-        List<Map<String, String>> invalid = invalidRequests.stream()
-            .map(RequestRecord::toMap)
-            .collect(Collectors.toList());
-        return ResponseEntity.ok(Map.of("valid", valid, "invalid", invalid));
+    public ResponseEntity<?> getRequests() {
+        try {
+            String owner = currentOwner();
+            var valid = queues.getValid(owner).stream().map(RequestRecord::toMap).collect(Collectors.toList());
+            var invalid = queues.getInvalid(owner).stream().map(RequestRecord::toMap).collect(Collectors.toList());
+            return ResponseEntity.ok(Map.of("valid", valid, "invalid", invalid));
+        } catch (Exception e) {
+            return ResponseEntity.status(401).body(Map.of("error", "not authenticated"));
+        }
     }
 
     @PostMapping("/request")
-    public ResponseEntity<String> requestTrack(@RequestBody Map<String, String> body) {
+    public ResponseEntity<String> requestTrack(@RequestParam("owner") String owner,
+                                            @RequestParam(value = "sig", required = false) String sig,
+                                            @RequestBody Map<String, String> body) {
         String uri = body.get("uri");
         if (uri == null || uri.isBlank()) {
             return ResponseEntity.badRequest().body("Missing uri");
         }
 
+        try {
+            if (signingSecret != null && !signingSecret.isEmpty()) {
+                if (sig == null || !sig.equals(hmac(owner, signingSecret))) {
+                    return ResponseEntity.status(403).body("invalid signature");
+                }
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            return ResponseEntity.status(500).body("sig error");
+        }
+
         String canonicalUri = UriUtils.canonicalTrackUri(uri);
         try {
-            // dedupe
-            boolean already = validRequests.stream().anyMatch(r -> r.getUri().equals(canonicalUri)) ||
-                    invalidRequests.stream().anyMatch(r -> r.getUri().equals(canonicalUri));
-            if (already) {
+            if (queues.containsUri(owner, canonicalUri)) {
                 return ResponseEntity.ok("Track already requested: " + canonicalUri);
             }
 
@@ -77,6 +102,7 @@ public class RequestController {
             boolean explicit = track.getIsExplicit();
 
             RequestRecord rec = classificationService.classify(
+                owner,
                 track.getName(),
                 track.getArtists()[0].getName(),
                 artistGenres,
@@ -84,18 +110,14 @@ public class RequestController {
                 canonicalUri
             );
 
-            if (rec.isValid()) {
-                validRequests.add(rec);
-            } else {
-                invalidRequests.add(rec);
-            }
-
+            queues.add(owner, rec);
             return ResponseEntity.ok("Track requested (uri=" + canonicalUri + ")");
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(500).body("Error: " + e.getMessage());
         }
     }
+
 
 
     @PostMapping("/addToPlaylist")
@@ -115,8 +137,8 @@ public class RequestController {
 
             spotifyService.addTrackToPlaylistByUri(playlistId, uri);
 
-            validRequests.removeIf(r -> r.getUri().equals(uri));
-            invalidRequests.removeIf(r -> r.getUri().equals(uri));
+            String owner = currentOwner();
+            queues.removeByUri(owner, uri);
 
             return ResponseEntity.ok("Track added to playlist: " + track.getName());
         } catch (Exception e) {
@@ -136,8 +158,8 @@ public class RequestController {
         try {
             Track track = spotifyService.getTrack(canonicalUri);
             spotifyService.addTrackToPlaylistByUri(playlistId, canonicalUri);
-            validRequests.removeIf(r -> r.getUri().equals(canonicalUri));
-            invalidRequests.removeIf(r -> r.getUri().equals(canonicalUri));
+            String owner = currentOwner();
+            queues.removeByUri(owner, canonicalUri);
             return ResponseEntity.ok("Track added: " + track.getName());
         } catch (Exception e) {
             e.printStackTrace();
@@ -146,47 +168,36 @@ public class RequestController {
     }
 
     @GetMapping("/allowExplicit")
-    public ResponseEntity<Map<String, Object>> getAllowExplicit() {
-        return ResponseEntity.ok(Map.of("allowExplicit", classificationService.isAllowExplicit()));
+    public ResponseEntity<Map<String, Object>> isAllowExplicit() {
+        try {
+            String owner = currentOwner();
+            return ResponseEntity.ok(Map.of("allowExplicit", classificationService.isAllowExplicit(owner)));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
+        }
     }
 
     @PostMapping("/allowExplicit")
-    public ResponseEntity<Void> setAllowExplicit(@RequestParam boolean value) {
-        classificationService.setAllowExplicit(value);
-        reclassifyAllRequests(); 
-        return ResponseEntity.ok().build();
+    public ResponseEntity<String> setAllowExplicit(@RequestBody Map<String, Object> body) {
+        try {
+            boolean allow = Boolean.TRUE.equals(body.get("allowExplicit"));
+            String owner = currentOwner();
+            classificationService.setAllowExplicit(owner, allow);
+            reclassifier.reclassifyAllForOwner(owner);
+            return ResponseEntity.ok("ok");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Error: " + e.getMessage());
+        }
     }
 
-    private void reclassifyAllRequests() {
-        List<RequestRecord> all = new ArrayList<>();
-        all.addAll(validRequests);
-        all.addAll(invalidRequests);
-
-        List<RequestRecord> newValid = new ArrayList<>();
-        List<RequestRecord> newInvalid = new ArrayList<>();
-
-        for (RequestRecord r : all) {
-            try {
-                Track track = spotifyService.getTrack(r.getUri());
-                Artist artistInfo = spotifyService.getArtist(track.getArtists()[0].getId());
-                List<String> artistGenres = Arrays.asList(artistInfo.getGenres());
-
-                RequestRecord re = classificationService.classify(
-                    track.getName(),
-                    track.getArtists()[0].getName(),
-                    artistGenres,
-                    track.getIsExplicit(),
-                    r.getUri()
-                );
-                if (re.isValid()) newValid.add(re); else newInvalid.add(re);
-            } catch (Exception e) {
-                if (r.isValid()) newValid.add(r); else newInvalid.add(r);
-            }
-        }
-
-        validRequests.clear();
-        validRequests.addAll(newValid);
-        invalidRequests.clear();
-        invalidRequests.addAll(newInvalid);
+    private static String hmac(String data, String secret) throws Exception {
+        Mac mac = Mac.getInstance("HmacSHA256");
+        mac.init(new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
+        byte[] raw = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
+        StringBuilder sb = new StringBuilder(raw.length * 2);
+        for (byte b : raw) sb.append(String.format("%02x", b));
+        return sb.toString();
     }
 }
