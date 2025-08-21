@@ -7,6 +7,7 @@ import com.mydj.backend.util.UriUtils;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import se.michaelthelin.spotify.model_objects.specification.Artist;
+import se.michaelthelin.spotify.model_objects.specification.ArtistSimplified;
 import se.michaelthelin.spotify.model_objects.specification.Track;
 import se.michaelthelin.spotify.model_objects.specification.Paging;
 import java.util.*;
@@ -97,8 +98,20 @@ public class RequestController {
             }
 
             Track track = spotifyService.getTrack(canonicalUri);
-            Artist artistInfo = spotifyService.getArtist(track.getArtists()[0].getId());
-            List<String> artistGenres = Arrays.asList(artistInfo.getGenres());
+
+            Set<String> genreSet = new LinkedHashSet<>();
+            for (ArtistSimplified a : track.getArtists()) {
+                Artist full = spotifyService.getArtist(a.getId());
+                if (full != null && full.getGenres() != null) {
+                    for (String g : full.getGenres()) {
+                        if (g != null && !g.isBlank()) {
+                            genreSet.add(g.toLowerCase(Locale.ROOT).trim());
+                        }
+                    }
+                }
+            }
+            List<String> artistGenres = new ArrayList<>(genreSet);
+
             boolean explicit = track.getIsExplicit();
 
             RequestRecord rec = classificationService.classify(
