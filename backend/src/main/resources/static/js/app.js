@@ -5,39 +5,52 @@ const emptyEl = document.getElementById('empty');
 const toastEl = document.getElementById('toast');
 
 let debounceTimer = null;
+let activeCtrl = null;
+const DEBOUNCE_MS = 300;
+
 input.addEventListener('input', () => {
   clearTimeout(debounceTimer);
   const q = input.value.trim();
   if (!q) { resultsEl.innerHTML = ''; emptyEl.hidden = false; return; }
-  debounceTimer = setTimeout(searchTrack, 250);
+  debounceTimer = setTimeout(() => searchTrack(), DEBOUNCE_MS);
 });
 
-searchBtn.addEventListener('click', searchTrack);
-
-function qp(name){ 
-  const u = new URL(window.location.href); 
-  return u.searchParams.get(name) || ""; 
-}
+input.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); searchTrack(); }
+});
 
 function setLoading(isLoading) {
-  const btn   = document.getElementById('searchBtn');
-  const input = document.getElementById('trackInput');
-
-  if (btn)   btn.disabled   = !!isLoading;
-  if (input) input.disabled = !!isLoading;
+  const btn = document.getElementById('searchBtn');
+  if (btn) btn.disabled = !!isLoading;
 
   document.body.classList.toggle('is-loading', !!isLoading);
   const spinner = document.getElementById('spinner');
   if (spinner) spinner.hidden = !isLoading;
 }
 
+function qp(name){ 
+  const u = new URL(window.location.href); 
+  return u.searchParams.get(name) || ""; 
+}
+
 async function searchTrack() {
   const query = input.value.trim();
   if (!query) { resultsEl.innerHTML=''; emptyEl.hidden=false; return; }
 
+  if (activeCtrl) activeCtrl.abort();
+  activeCtrl = new AbortController();
+
   setLoading(true);
   try {
-    const res = await fetch(`/search?track=${encodeURIComponent(query)}&limit=25`);
+    const res = await fetch(`/search?track=${encodeURIComponent(query)}&limit=25`, {
+      headers: { 'Accept': 'application/json' },
+      signal: activeCtrl.signal
+    });
+    if (!res.ok) {
+      console.error('search failed', res.status, await res.text());
+      showToast('Search failed. Try again.', true);
+      return;
+    }
     const data = await res.json();
 
     resultsEl.innerHTML = '';
@@ -88,12 +101,15 @@ async function searchTrack() {
       resultsEl.appendChild(row);
     });
   } catch (err) {
-    console.error(err);
-    showToast('Something went wrong searching. Please try again.', true);
+    if (err.name !== 'AbortError') {
+      console.error(err);
+      showToast('Something went wrong searching. Please try again.', true);
+    }
   } finally {
     setLoading(false);
   }
 }
+
 
 async function submitRequest(trackUri) {
   if (!trackUri) {

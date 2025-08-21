@@ -192,6 +192,19 @@ public class RequestController {
         }
     }
 
+    @PostMapping(value = "/allowExplicit", params = "value")
+    public ResponseEntity<String> setAllowExplicitParam(@RequestParam("value") boolean value) {
+        try {
+            String owner = currentOwner();
+            classificationService.setAllowExplicit(owner, value);
+            reclassifier.reclassifyAllForOwner(owner);
+            return ResponseEntity.ok("ok");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Error: " + e.getMessage());
+        }
+    }
+
     private static String hmac(String data, String secret) throws Exception {
         Mac mac = Mac.getInstance("HmacSHA256");
         mac.init(new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));

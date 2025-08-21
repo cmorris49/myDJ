@@ -23,9 +23,6 @@ public class RequestClassificationService {
         return byOwner.computeIfAbsent(owner == null ? GLOBAL : owner, k -> new OwnerConfig());
     }
 
-
-
-
     public boolean isAllowExplicit(String owner) { 
         return cfg(owner).allowExplicit; 
     }

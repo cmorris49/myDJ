@@ -65,6 +65,7 @@ public class App extends Application {
         genreSelector.setOnAllowedChanged(allowed -> {
             String text = allowed.isEmpty() ? "(none)" : String.join(", ", allowed);
             requestsPane.setAllowedHeading(text);
+            requestsPane.loadRequests();
         });
 
         // adding to playlist from requests

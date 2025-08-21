@@ -1,9 +1,6 @@
 package com.mydj.backend.service;
 
 import com.mydj.backend.model.RequestRecord;
-import com.mydj.backend.util.UriUtils;
-import se.michaelthelin.spotify.model_objects.specification.Artist;
-import se.michaelthelin.spotify.model_objects.specification.Track;
 import java.util.*;
 import org.springframework.stereotype.Service;
 
@@ -14,44 +11,62 @@ import org.springframework.stereotype.Service;
 @Service
 public class RequestReclassifier {
 
-    private final SpotifyService spotifyService;
-    private final RequestClassificationService classificationService;
-    private final RequestQueueService queues;
+  private final SpotifyService spotifyService;
+  private final RequestClassificationService classificationService;
+  private final RequestQueueService queues;
 
-    public RequestReclassifier(SpotifyService spotifyService,
-                               RequestClassificationService classificationService,
-                               RequestQueueService queues) {
-        this.spotifyService = spotifyService;
-        this.classificationService = classificationService;
-        this.queues = queues;
-    }
+  public RequestReclassifier(SpotifyService spotifyService,
+                              RequestClassificationService classificationService,
+                              RequestQueueService queues) {
+      this.spotifyService = spotifyService;
+      this.classificationService = classificationService;
+      this.queues = queues;
+  }
 
-    public void reclassifyAllForOwner(String owner) {
-        var all = new ArrayList<RequestRecord>();
-        all.addAll(queues.getValid(owner));
-        all.addAll(queues.getInvalid(owner));
-        if (all.isEmpty()) return;
-        
-        var rebuilt = new ArrayList<RequestRecord>(all.size()); 
+  public void reclassifyAllForOwner(String owner) {
+      var all = new ArrayList<RequestRecord>();
+      all.addAll(queues.getValid(owner));
+      all.addAll(queues.getInvalid(owner));
+      if (all.isEmpty()) return;
 
-        for (RequestRecord r : all) {
-            try {
-                String uri = UriUtils.canonicalTrackUri(r.getUri());
-                Track track = spotifyService.getTrack(uri);
-                Artist artistInfo = spotifyService.getArtist(track.getArtists()[0].getId());
-                List<String> artistGenres = Arrays.asList(artistInfo.getGenres());
-                boolean explicit = track.getIsExplicit();
+      var rebuilt = new ArrayList<RequestRecord>(all.size()); 
 
-                RequestRecord re = classificationService.classify(
-                    owner, track.getName(), track.getArtists()[0].getName(),
-                    artistGenres, explicit, uri
+      for (RequestRecord r : all) {
+        try {
+            String uri = com.mydj.backend.util.UriUtils.canonicalTrackUri(r.getUri());
+            String g = r.getGenre();
+            boolean haveGenre = g != null && !g.isBlank() && !"unknown".equalsIgnoreCase(g);
+
+            if (haveGenre) {
+                var rec = classificationService.classify(
+                    owner,
+                    r.getTitle(),
+                    r.getArtist(),
+                    java.util.List.of(g),
+                    r.isExplicit(),
+                    uri
                 );
-                rebuilt.add(re);
-            } catch (Exception e) {
-                rebuilt.add(r); 
+                rebuilt.add(rec);
+            } else {
+                var track = spotifyService.getTrack(uri);
+                var artist = spotifyService.getArtist(track.getArtists()[0].getId());
+                var artistGenres = java.util.Arrays.asList(artist.getGenres());
+
+                var rec = classificationService.classify(
+                    owner,
+                    track.getName(),
+                    track.getArtists()[0].getName(),
+                    artistGenres,
+                    track.getIsExplicit(),
+                    uri
+                );
+                rebuilt.add(rec);
             }
-        }
-      queues.replaceAll(owner, rebuilt);
-    }
+          } catch (Exception e) {
+              rebuilt.add(r); 
+          }
+      }
+    queues.replaceAll(owner, rebuilt);
+  }
 }
 
