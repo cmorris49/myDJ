@@ -19,6 +19,18 @@ function qp(name){
   return u.searchParams.get(name) || ""; 
 }
 
+function setLoading(isLoading) {
+  const btn   = document.getElementById('searchBtn');
+  const input = document.getElementById('trackInput');
+
+  if (btn)   btn.disabled   = !!isLoading;
+  if (input) input.disabled = !!isLoading;
+
+  document.body.classList.toggle('is-loading', !!isLoading);
+  const spinner = document.getElementById('spinner');
+  if (spinner) spinner.hidden = !isLoading;
+}
+
 async function searchTrack() {
   const query = input.value.trim();
   if (!query) { resultsEl.innerHTML=''; emptyEl.hidden=false; return; }
