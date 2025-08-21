@@ -5,26 +5,34 @@ import com.mydj.backend.util.UriUtils;
 import se.michaelthelin.spotify.model_objects.specification.Artist;
 import se.michaelthelin.spotify.model_objects.specification.Track;
 import java.util.*;
+import org.springframework.stereotype.Service;
 
 /**
  * Used to reclassify songs (valid or invalid) after the user makes
  * a preference change for which types of songs they would like to accept.
  */
+@Service
 public class RequestReclassifier {
+
     private final SpotifyService spotifyService;
     private final RequestClassificationService classificationService;
     private final RequestQueueService queues;
 
-    public RequestReclassifier(SpotifyService s, RequestClassificationService c, RequestQueueService q) {
-        this.spotifyService = s; this.classificationService = c; this.queues = q;
+    public RequestReclassifier(SpotifyService spotifyService,
+                               RequestClassificationService classificationService,
+                               RequestQueueService queues) {
+        this.spotifyService = spotifyService;
+        this.classificationService = classificationService;
+        this.queues = queues;
     }
 
     public void reclassifyAllForOwner(String owner) {
         var all = new ArrayList<RequestRecord>();
         all.addAll(queues.getValid(owner));
         all.addAll(queues.getInvalid(owner));
-
-        queues.clearAll(owner); 
+        if (all.isEmpty()) return;
+        
+        var rebuilt = new ArrayList<RequestRecord>(all.size()); 
 
         for (RequestRecord r : all) {
             try {
@@ -38,11 +46,12 @@ public class RequestReclassifier {
                     owner, track.getName(), track.getArtists()[0].getName(),
                     artistGenres, explicit, uri
                 );
-                queues.add(owner, re);
+                rebuilt.add(re);
             } catch (Exception e) {
-                queues.add(owner, r); 
+                rebuilt.add(r); 
             }
         }
+      queues.replaceAll(owner, rebuilt);
     }
 }
 

@@ -15,8 +15,12 @@ public class GenreController {
     private final SpotifyService spotifyService;
     private final RequestReclassifier reclassifier;
 
-    public GenreController(RequestClassificationService c, SpotifyService s, RequestReclassifier r) {
-        this.classificationService = c; this.spotifyService = s; this.reclassifier = r;
+    public GenreController(RequestClassificationService classificationService,
+                        SpotifyService spotifyService,
+                        RequestReclassifier reclassifier) {
+        this.classificationService = classificationService;
+        this.spotifyService = spotifyService;
+        this.reclassifier = reclassifier;
     }
 
     private String owner() throws Exception {

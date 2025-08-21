@@ -41,5 +41,16 @@ public class RequestQueueService {
             || q(owner).invalid.stream().anyMatch(r -> Objects.equals(r.getUri(), uri));
     }
 
-    public void clearAll(String owner) { byOwner.remove(owner); }
+    public void clearAll(String owner) { 
+      byOwner.remove(owner); 
+    }
+
+    public void replaceAll(String owner, List<RequestRecord> records) {
+        Queues nq = new Queues();
+        for (RequestRecord r : records) {
+            if (r.isValid()) nq.valid.add(r); else nq.invalid.add(r);
+        }
+        byOwner.put(owner, nq);
+    }
+
 }
