@@ -1,6 +1,9 @@
 package com.mydj.backend.service;
 
 import com.mydj.backend.model.RequestRecord;
+
+import se.michaelthelin.spotify.model_objects.specification.Track;
+
 import java.util.*;
 import org.springframework.stereotype.Service;
 
@@ -24,49 +27,48 @@ public class RequestReclassifier {
   }
 
   public void reclassifyAllForOwner(String owner) {
-      var all = new ArrayList<RequestRecord>();
-      all.addAll(queues.getValid(owner));
-      all.addAll(queues.getInvalid(owner));
-      if (all.isEmpty()) return;
+      var snapshot = new ArrayList<RequestRecord>();
+      snapshot.addAll(queues.getValid(owner));
+      snapshot.addAll(queues.getInvalid(owner));
+      if (snapshot.isEmpty()) return;
 
-      var rebuilt = new ArrayList<RequestRecord>(all.size()); 
+      // small caches per run
+      Map<String, Track> trackCache = new HashMap<>();
+      Map<String, List<String>> artistGenresCache = new HashMap<>();
 
-      for (RequestRecord r : all) {
-        try {
-            String uri = com.mydj.backend.util.UriUtils.canonicalTrackUri(r.getUri());
-            String g = r.getGenre();
-            boolean haveGenre = g != null && !g.isBlank() && !"unknown".equalsIgnoreCase(g);
+      var rebuilt = new ArrayList<RequestRecord>(snapshot.size());
 
-            if (haveGenre) {
-                var rec = classificationService.classify(
-                    owner,
-                    r.getTitle(),
-                    r.getArtist(),
-                    java.util.List.of(g),
-                    r.isExplicit(),
-                    uri
-                );
-                rebuilt.add(rec);
-            } else {
-                var track = spotifyService.getTrack(uri);
-                var artist = spotifyService.getArtist(track.getArtists()[0].getId());
-                var artistGenres = java.util.Arrays.asList(artist.getGenres());
+      for (RequestRecord r : snapshot) {
+          try {
+              String uri = com.mydj.backend.util.UriUtils.canonicalTrackUri(r.getUri());
 
-                var rec = classificationService.classify(
-                    owner,
-                    track.getName(),
-                    track.getArtists()[0].getName(),
-                    artistGenres,
-                    track.getIsExplicit(),
-                    uri
-                );
-                rebuilt.add(rec);
-            }
+              Track track = trackCache.computeIfAbsent(uri, u -> {
+                  try { return spotifyService.getTrack(u); }
+                  catch (Exception e) { return null; }
+              });
+              if (track == null) { rebuilt.add(r); continue; }
+
+              String artistId = track.getArtists()[0].getId();
+              List<String> artistGenres = artistGenresCache.computeIfAbsent(artistId, id -> {
+                  try { return Arrays.asList(spotifyService.getArtist(id).getGenres()); }
+                  catch (Exception e) { return List.of(); }
+              });
+
+              RequestRecord re = classificationService.classify(
+                  owner,
+                  track.getName(),
+                  track.getArtists()[0].getName(),
+                  artistGenres,
+                  track.getIsExplicit(),
+                  uri
+              );
+              rebuilt.add(re);
           } catch (Exception e) {
-              rebuilt.add(r); 
+              rebuilt.add(r);
           }
       }
-    queues.replaceAll(owner, rebuilt);
+      queues.replaceAll(owner, rebuilt);
   }
+
 }
 

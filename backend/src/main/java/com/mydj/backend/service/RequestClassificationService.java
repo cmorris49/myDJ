@@ -46,14 +46,31 @@ public class RequestClassificationService {
         }
     }
 
+    private static String norm(String s) {
+        if (s == null) return "";
+        String x = s.toLowerCase(Locale.ROOT).trim();
+        x = x.replace("&", "and").replace("+", "and");
+        x = x.replaceAll("[^a-z0-9]+", ""); 
+        if (x.equals("rnb")) x = "randb";   
+        return x;
+    }
+
     private String matchToAllowedGenre(String owner, List<String> artistGenres) {
         Set<String> allowed = cfg(owner).allowedGenres;
         if (artistGenres == null || artistGenres.isEmpty() || allowed.isEmpty()) return null;
+
+        List<String> allowedList = new ArrayList<>(allowed);
+        List<String> allowedNorm = new ArrayList<>(allowedList.size());
+        for (String a : allowedList) allowedNorm.add(norm(a));
+
         for (String g : artistGenres) {
             if (g == null) continue;
-            String gl = g.toLowerCase(Locale.ROOT).trim();
-            for (String a : allowed) {
-                if (gl.equals(a) || gl.contains(a)) return a;
+            String gn = norm(g);
+            for (int i = 0; i < allowedList.size(); i++) {
+                String an = allowedNorm.get(i);
+                if (gn.equals(an) || gn.contains(an) || an.contains(gn)) {
+                    return allowedList.get(i); 
+                }
             }
         }
         return null;
