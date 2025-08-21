@@ -11,6 +11,7 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.ToggleButton;
@@ -31,7 +32,7 @@ import java.util.function.Consumer;
 
 public class App extends Application {
 
-    private static final String BASE_URL = "https://e30144e81759.ngrok-free.app";
+    private static final String BASE_URL = "https://mydj-1.onrender.com";
 
     private ApiClient apiClient;
     private GenreSelector genreSelector;
@@ -87,12 +88,20 @@ public class App extends Application {
         // When playlist selection changes, refresh the tracks
         playlistPane.setOnPlaylistChanged(p -> playlistPane.refreshTracks());
 
-        // Top bar: playlist left, device selector, dark mode on right
+        // Top bar
+        Button signIn = new Button("Sign in");
+        signIn.setOnAction(e -> getHostServices().showDocument(BASE_URL + "/login"));
+        Button showQr = new Button("Show QR");
+        showQr.setDisable(true);
+        showQr.setOnAction(e -> getHostServices().showDocument(BASE_URL + "/qr-default"));
+        HBox leftControls = new HBox(8, signIn, showQr);
+
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
         HBox topSelectors = new HBox(10,
-            playlistPane.getNode(),
-            spacer,
+            leftControls,               
+            playlistPane.getNode(),     
+            spacer,                    
             deviceSelector.getNode(),
             themeToggle
         );
@@ -136,6 +145,12 @@ public class App extends Application {
         stage.setScene(scene);
         stage.setTitle("myDJ Desktop App");
         stage.show();
+
+        apiClient.checkLogin(isAuthed -> showQr.setDisable(!isAuthed));
+        poller.scheduleAtFixedRate(
+            () -> apiClient.checkLogin(isAuthed -> showQr.setDisable(!isAuthed)),
+            jitterMs(2000), 10_000, java.util.concurrent.TimeUnit.MILLISECONDS
+        );
 
         Platform.runLater(() -> {
             playbackBar.refreshPlayback();

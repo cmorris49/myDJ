@@ -11,8 +11,10 @@ com\mydj\desktop\service\ApiClient$3.class
 com\mydj\desktop\App.class
 com\mydj\desktop\service\ApiClient$2.class
 com\mydj\desktop\service\ApiClient.class
+com\mydj\desktop\ui\DeviceSelector$1.class
 com\mydj\desktop\service\ApiClient$4.class
 com\mydj\desktop\model\DeviceInfo.class
+com\mydj\desktop\service\ApiClient$8.class
 com\mydj\desktop\ui\PlaylistPane.class
 com\mydj\desktop\model\RequestRecord.class
 com\mydj\desktop\service\ApiClient$7.class

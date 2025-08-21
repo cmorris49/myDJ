@@ -72,6 +72,14 @@ public class ApiClient {
         System.out.println("[ApiClient] " + msg);
     }
 
+    public void checkLogin(java.util.function.Consumer<Boolean> onResult) {
+        client.sendAsync(build("GET", "/me", null), java.net.http.HttpResponse.BodyHandlers.ofString())
+            .whenComplete((resp, err) -> {
+                boolean ok = (err == null && resp.statusCode() == 200);
+                javafx.application.Platform.runLater(() -> onResult.accept(ok));
+            });
+    }
+    
     private void withRetries(Supplier<CompletableFuture<String>> attempt,
                              Consumer<String> onSuccess,
                              Consumer<Throwable> onError,
