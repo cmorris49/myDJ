@@ -2,25 +2,23 @@ package com.mydj.desktop.ui;
 
 import com.mydj.desktop.model.RequestRecord;
 import com.mydj.desktop.service.ApiClient;
+import com.mydj.desktop.ui.util.FxUi;
 import javafx.application.Platform;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
-import javafx.scene.Parent;
 import javafx.scene.control.*;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 
 import java.util.*;
 import java.util.function.BiConsumer;
 
 public class RequestsPane {
-
     private final ApiClient apiClient;
 
-    private final VBox root = new VBox(5);
+    private final VBox root = new VBox(12);
 
     private final ListView<String> validListView = new ListView<>();
     private final ListView<String> invalidListView = new ListView<>();
@@ -31,7 +29,7 @@ public class RequestsPane {
 
     private final Label validTitle   = new Label("Valid Requests");
     private final Label invalidTitle = new Label("Invalid Requests");
-    private final Label allowedHeading = new Label("Allowed Genres: (none)");
+    private final Label allowedHeading = new Label("Allowed Genres: all");
 
     private final VBox validBox = new VBox(8);
     private final VBox invalidBox = new VBox(8);
@@ -44,10 +42,11 @@ public class RequestsPane {
         this.apiClient = apiClient;
 
         toggles.setAlignment(Pos.CENTER_LEFT);
+        FxUi.setupEvenRow(toggles, 10, 8); 
 
-        centerLabel(validTitle);
-        centerLabel(invalidTitle);
-        centerSubLabel(allowedHeading);
+        centerTitle(validTitle);
+        centerTitle(invalidTitle);
+        centerSubTitle(allowedHeading);
 
         validBox.getChildren().setAll(validTitle, allowedHeading, toggles, validListView);
         validBox.setAlignment(Pos.TOP_CENTER);
@@ -59,11 +58,13 @@ public class RequestsPane {
 
         root.getChildren().addAll(validBox, invalidBox);
 
+        // init explicit toggle from backend
         apiClient.getAllowExplicit(
-            v -> javafx.application.Platform.runLater(() -> explicitToggle.setSelected(v)),
+            v -> Platform.runLater(() -> explicitToggle.setSelected(v)),
             err -> System.err.println("getAllowExplicit failed: " + err)
         );
 
+        // double-click add from lists
         validListView.setOnMouseClicked(evt -> {
             if (evt.getButton() == MouseButton.PRIMARY && evt.getClickCount() == 2) {
                 String display = validListView.getSelectionModel().getSelectedItem();
@@ -84,27 +85,20 @@ public class RequestsPane {
         });
 
         autoAddToggle.setOnAction(e -> loadRequests());
-        explicitToggle.setOnAction(e -> {
-            boolean desired = explicitToggle.isSelected();
-            apiClient.setAllowExplicit(desired,
-                () -> javafx.application.Platform.runLater(this::loadRequests),
-                err -> {
-                    System.err.println("setAllowExplicit failed: " + err);
-                    javafx.application.Platform.runLater(() -> explicitToggle.setSelected(!desired));
-                }
-            );
-        });
-
-        equalizeButtonRowWidths();
+        explicitToggle.setOnAction(e -> apiClient.setAllowExplicit(
+            explicitToggle.isSelected(),
+            () -> Platform.runLater(this::loadRequests), 
+            err -> System.err.println("setAllowExplicit failed: " + err)
+        ));
     }
 
-    private void centerLabel(Label lbl) {
+    private void centerTitle(Label lbl) {
         lbl.getStyleClass().add("section-title");
         lbl.setAlignment(Pos.CENTER);
         lbl.setMaxWidth(Double.MAX_VALUE);
     }
 
-    private void centerSubLabel(Label lbl) {
+    private void centerSubTitle(Label lbl) {
         lbl.getStyleClass().add("section-subtitle");
         lbl.setAlignment(Pos.CENTER);
         lbl.setMaxWidth(Double.MAX_VALUE);
@@ -119,7 +113,6 @@ public class RequestsPane {
             List<RequestRecord> valid = map.getOrDefault("valid", Collections.emptyList());
             List<RequestRecord> invalid = map.getOrDefault("invalid", Collections.emptyList());
 
-            Set<String> allowedGenres = Set.of();
             boolean explicitAllowed = explicitToggle.isSelected();
 
             List<String> validDisplays = new ArrayList<>();
@@ -129,9 +122,7 @@ public class RequestsPane {
             for (RequestRecord r : valid) {
                 String display = r.display();
                 displayToUri.put(display, r.getUri());
-                boolean genreOk = allowedGenres.isEmpty() || allowedGenres.contains(r.getGenre().toLowerCase());
-                boolean explicitOk = explicitAllowed || !r.isExplicit();
-                if (genreOk && explicitOk) validDisplays.add(display);
+                if (explicitAllowed || !r.isExplicit()) validDisplays.add(display);
                 else invalidDisplays.add(display);
             }
             for (RequestRecord r : invalid) {
@@ -140,82 +131,39 @@ public class RequestsPane {
                 invalidDisplays.add(display);
             }
 
-            validListView.getItems().setAll(validDisplays);
-            invalidListView.getItems().setAll(invalidDisplays);
+            Platform.runLater(() -> {
+                validListView.getItems().setAll(validDisplays);
+                invalidListView.getItems().setAll(invalidDisplays);
 
-            if (autoAddToggle.isSelected()) {
-                for (String display : validDisplays) {
-                    String uri = displayToUri.get(display);
-                    onAddToPlaylist.accept(display, uri);
+                if (autoAddToggle.isSelected()) {
+                    for (String display : validDisplays) {
+                        String uri = displayToUri.get(display);
+                        onAddToPlaylist.accept(display, uri);
+                    }
                 }
-            }
+            });
         }, ex -> System.err.println("Failed to load requests: " + ex.getMessage()));
     }
 
     public void setOnAddToPlaylist(BiConsumer<String, String> handler) {
-        this.onAddToPlaylist = handler != null ? handler : (d,u)->{};
+        this.onAddToPlaylist = handler != null ? handler : (d, u) -> {};
     }
 
-    public void removeDisplay(String display) {
-        validListView.getItems().remove(display);
-        invalidListView.getItems().remove(display);
-        displayToUri.remove(display);
+    public void setAllowedHeading(String text) {
+        String t = (text == null || text.isBlank() || "(none)".equalsIgnoreCase(text.trim()))
+                ? "all" : text;
+        allowedHeading.setText("Allowed Genres: " + t);
     }
 
     public void addRightOfExplicit(Node node) {
         int idx = toggles.getChildren().indexOf(explicitToggle);
         if (idx < 0) idx = toggles.getChildren().size() - 1;
         toggles.getChildren().add(idx + 1, node);
-        equalizeButtonRowWidths(); 
     }
 
-    public void setAllowedHeading(String text) {
-        allowedHeading.setText("Allowed Genres: " + (text == null || text.isBlank() ? "(none)" : text));
-    }
-
-    private void equalizeButtonRowWidths() {
-        Platform.runLater(() -> {
-            for (Node n : toggles.getChildren()) {
-                HBox.setHgrow(n, Priority.ALWAYS);
-                makeFillWidth(n);
-            }
-
-            toggles.widthProperty().addListener((obs, ov, nv) -> {
-                int count = toggles.getChildren().size();
-                if (count == 0) return;
-                double spacing = toggles.getSpacing() * (count - 1);
-                double per = Math.max(0, nv.doubleValue() - spacing) / count;
-
-                for (Node n : toggles.getChildren()) {
-                    if (n instanceof Region r) {
-                        r.setMaxWidth(Double.MAX_VALUE);
-                        r.setPrefWidth(per);
-                    } else if (n instanceof Parent p) {
-                        for (Node c : p.getChildrenUnmodifiable()) {
-                            if (c instanceof Button b) {
-                                b.setMaxWidth(Double.MAX_VALUE);
-                                b.setPrefWidth(per);
-                                break;
-                            } else if (c instanceof Region r2) {
-                                r2.setMaxWidth(Double.MAX_VALUE);
-                                r2.setPrefWidth(per);
-                                break;
-                            }
-                        }
-                    }
-                }
-            });
-        });
-    }
-
-    private void makeFillWidth(Node n) {
-        if (n instanceof Region r) {
-            r.setMaxWidth(Double.MAX_VALUE);
-        }
-        if (n instanceof Parent p) {
-            for (Node c : p.getChildrenUnmodifiable()) {
-                if (c instanceof Region r2) r2.setMaxWidth(Double.MAX_VALUE);
-            }
-        }
+    public void removeDisplay(String display) {
+        validListView.getItems().remove(display);
+        invalidListView.getItems().remove(display);
+        displayToUri.remove(display);
     }
 }

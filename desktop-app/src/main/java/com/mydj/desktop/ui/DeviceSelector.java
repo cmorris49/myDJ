@@ -4,7 +4,6 @@ import com.mydj.desktop.model.DeviceInfo;
 import com.mydj.desktop.service.ApiClient;
 import javafx.scene.Node;
 import javafx.scene.control.ComboBox;
-import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.util.StringConverter;
@@ -15,7 +14,6 @@ public class DeviceSelector {
 
     private final ApiClient apiClient;
     private final HBox root = new HBox(6);
-    private final Label deviceLabel = new Label("Device:");
     private final ComboBox<DeviceInfo> deviceCombo = new ComboBox<>();
 
     public DeviceSelector(ApiClient apiClient) {
@@ -27,8 +25,9 @@ public class DeviceSelector {
         });
 
         HBox.setHgrow(deviceCombo, Priority.SOMETIMES);
-        root.getChildren().addAll(deviceLabel, deviceCombo);
+        root.getChildren().add(deviceCombo);
         root.setFillHeight(true);
+        deviceCombo.setPromptText("Device");
 
         deviceCombo.setOnShowing(e -> refreshDevices());
 

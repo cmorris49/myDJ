@@ -1,12 +1,23 @@
 .root {
   -fx-background-color: black;
+  -fx-font-family: "Inter", "SF Pro Text", "Segoe UI", "Roboto", "Arial";
+  -fx-font-size: 13px;
 }
+
 .split-pane {
   -fx-background-color: black;
 }
 .split-pane > .split-pane-divider {
-  -fx-background-color: #333;  
+  -fx-background-color: #333;
 }
+.split-pane:horizontal > .split-pane-divider {
+  -fx-padding: 0 1px 0 1px;
+}
+.split-pane > .split-pane-divider .horizontal-grabber,
+.split-pane > .split-pane-divider .vertical-grabber {
+  -fx-background-color: transparent;
+}
+
 .list-view {
   -fx-background-color: black;
 }
@@ -14,22 +25,17 @@
   -fx-background-color: black;
   -fx-text-fill: white;
 }
-.label,
-.button,
-.combo-box,
-.combo-box .list-cell {
-  -fx-text-fill: white;
-}
+
 .scroll-bar {
   -fx-background-color: transparent;
 }
 .scroll-bar > .track {
-  -fx-background-color: #222;  
+  -fx-background-color: #222;
 }
 .scroll-bar > .thumb {
-  -fx-background-color: #444;  
-  -fx-background-insets: 2;    
-  -fx-background-radius: 4;    
+  -fx-background-color: #444;
+  -fx-background-insets: 2;
+  -fx-background-radius: 4;
 }
 .scroll-bar > .increment-button,
 .scroll-bar > .decrement-button {
@@ -37,113 +43,45 @@
   -fx-padding: 0;
   -fx-shape: "";
 }
-.toggle-button {
-  -fx-background-color: #222;
-  -fx-text-fill: white;
-  -fx-background-radius: 4;
-  -fx-border-radius: 4;
-  -fx-border-color: #444;
+.scroll-bar:vertical { -fx-pref-width: 12; }
+.scroll-bar:horizontal { -fx-pref-height: 12; }
+.scroll-pane > .corner,
+.list-view > .virtual-flow > .corner,
+.list-view > .corner,
+.table-view > .virtual-flow > .corner,
+.tree-view > .virtual-flow > .corner {
+  -fx-background-color: black;
 }
-.toggle-button:hover {
-  -fx-background-color: #333;
-}
-.toggle-button:pressed {
-  -fx-background-color: #111;
-}
-.toggle-button:selected {
-  -fx-background-color: #444;
-}
-.combo-box {
-  -fx-background-color: #222;
-  -fx-text-fill: white;
-  -fx-background-radius: 4;
-  -fx-border-color: #444;
-  -fx-border-radius: 4;
-}
-.combo-box:hover {
-  -fx-background-color: #333;
-}
-.combo-box .arrow-button {
-  -fx-background-color: transparent;
-}
-.combo-box .arrow {
-  -fx-background-color: #222;
-}
-.combo-box-popup .list-view {
-  -fx-background-color: #222;
-}
+
+.label,
+.button,
+.combo-box,
 .combo-box .list-cell {
   -fx-text-fill: white;
-  -fx-background-color: #222;
 }
-.combo-box .list-cell:hover {
-  -fx-background-color: #333;
+
+.section-title {
+  -fx-font-size: 22px;
+  -fx-font-weight: 800;
 }
-.menu-button {
-  -fx-background-color: #222;
-  -fx-text-fill: white;
-  -fx-background-radius: 4;
-  -fx-border-radius: 4;
-  -fx-border-color: #444;
+.section-subtitle {
+  -fx-font-size: 15px;
+  -fx-font-weight: 500;
 }
-.menu-button:hover {
-  -fx-background-color: #333;
+#song-title {
+  -fx-font-weight: 700;
+  -fx-font-size: 16px;
 }
-.menu-button:pressed {
-  -fx-background-color: #111;
-}
-.menu-button .arrow-button {
-  -fx-background-color: transparent;
-}
-.menu-button .arrow {
-  -fx-background-color: white; 
-}
-.context-menu {
-  -fx-background-color: #222;
-}
-.context-menu .menu-item,
-.context-menu .check-menu-item {
-  -fx-text-fill: white;
-  -fx-background-color: #222;
-}
-.context-menu .menu-item:hover,
-.context-menu .check-menu-item:hover {
-  -fx-background-color: #333;
-}
+
 .button,
 .toggle-button,
-.menu-button {
-  -fx-focus-color: #1DB954;        
-  -fx-faint-focus-color: transparent; 
+.menu-button,
+.toggle-like,
+.combo-box {
+  -fx-font-size: 14px;
+  -fx-font-weight: 600;
 }
-.toggle-button:selected,
-.menu-button:focused {
-  -fx-border-color: #1DB954;
-  -fx-border-width: 2;
-}
-#theme-toggle,
-#theme-toggle:focused,
-#theme-toggle:selected {
-  -fx-border-color: transparent;      
-  -fx-focus-color: transparent;       
-  -fx-faint-focus-color: transparent; 
-}
-#theme-toggle {
-  -fx-border-color: #1DB954;
-  -fx-border-width: 2;
-  -fx-border-radius: 4;
-}
-.toggle-button:selected {
-  -fx-border-color: #1DB954;
-  -fx-border-width: 2;
-  -fx-border-radius: 4;
-}
-.button:focused,
-.menu-button:focused,
-.combo-box:focused {
-  -fx-focus-color: #1DB954;        
-  -fx-faint-focus-color: transparent;
-}
+
 .toggle-like {
   -fx-background-color: rgba(255,255,255,0.08);
   -fx-text-fill: white;
@@ -159,6 +97,7 @@
 .toggle-like:pressed {
   -fx-background-color: rgba(255,255,255,0.22);
 }
+
 .toggle-button {
   -fx-background-radius: 999;
   -fx-background-color: rgba(255,255,255,0.08);
@@ -172,56 +111,77 @@
   -fx-background-color: rgba(255,255,255,0.14);
 }
 .toggle-button:selected {
-  -fx-background-color: #1DB954; 
+  -fx-background-color: #1DB954;
   -fx-text-fill: black;
   -fx-border-color: transparent;
 }
-.app-dialog {
-  -fx-background-color: #121212;
+
+.button:focused,
+.menu-button:focused,
+.combo-box:focused {
+  -fx-focus-color: #1DB954;
+  -fx-faint-focus-color: transparent;
 }
-.app-dialog > *.header-panel {
-  -fx-background-color: transparent;
-  -fx-padding: 8 8 0 8;
-}
-.app-dialog > *.content {
-  -fx-background-color: #121212;
-  -fx-padding: 12;
-}
-.app-dialog > *.button-bar > *.container {
-  -fx-background-color: transparent;
-  -fx-padding: 12;
-}
-.dialog-search {
-  -fx-background-color: #1e1e1e;
+
+.combo-box {
+  -fx-background-color: rgba(255,255,255,0.08);
   -fx-text-fill: white;
-  -fx-prompt-text-fill: rgba(255,255,255,0.6);
-  -fx-background-radius: 8;
-  -fx-padding: 8 10;
+  -fx-background-radius: 999;
   -fx-border-color: rgba(255,255,255,0.18);
-  -fx-border-radius: 8;
-}
-.dialog-list {
-  -fx-background-color: #121212;
-  -fx-control-inner-background: #121212;
+  -fx-border-radius: 999;
+  -fx-border-width: 1;
+  -fx-padding: 6 12 6 12;
+  -fx-alignment: CENTER_LEFT;
   -fx-background-insets: 0;
-  -fx-padding: 4;
 }
-.dialog-list .list-cell {
-  -fx-background-color: #121212;
+.combo-box:hover {
+  -fx-background-color: rgba(255,255,255,0.14);
+}
+.combo-box:focused,
+.combo-box:showing {
+  -fx-background-color: rgba(255,255,255,0.16);
+}
+.combo-box > .arrow-button {
+  -fx-background-color: transparent;
+}
+.combo-box > .arrow-button > .arrow {
+  -fx-background-color: white;
+}
+.combo-box .list-cell {
+  -fx-background-color: transparent;
   -fx-text-fill: white;
-  -fx-padding: 8 10;
+  -fx-padding: 4 12 4 12;
+  -fx-label-padding: 0;
+  -fx-alignment: CENTER_LEFT;
+  -fx-translate-y: -0.5px;
 }
-.dialog-list .list-cell:selected {
-  -fx-background-color: rgba(255,255,255,0.12);
+.combo-box-popup > .list-view {
+  -fx-background-color: #171717, #171717;
+  -fx-background-insets: 0, 1;
+  -fx-background-radius: 10, 10;
+  -fx-padding: 4;
+  -fx-border-color: rgba(255,255,255,0.18);
+  -fx-border-radius: 10;
+  -fx-border-width: 1;
+  -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.55), 10, 0.3, 0, 2);
 }
-.dialog-list .check-box .box {
-  -fx-background-color: #1e1e1e;
-  -fx-border-color: rgba(255,255,255,0.3);
+.combo-box-popup > .list-view .list-cell:hover {
+  -fx-background-color: rgba(255,255,255,0.10);
 }
-.dialog-list .check-box:selected .box,
-.dialog-list .check-box .box:armed {
+.combo-box-popup > .list-view .list-cell:selected {
   -fx-background-color: #1DB954;
-  -fx-border-color: #1DB954;
+  -fx-text-fill: black;
+}
+.combo-box-popup > .list-view .list-cell {
+  -fx-padding: 6 10 6 10;
 }
 
-
+.toggle-like,
+.toggle-button,
+.menu-button {
+  -fx-min-height: 40px;
+  -fx-pref-height: 40px;
+  -fx-max-height: 40px;
+  -fx-padding: 8 14 8 14;
+  -fx-alignment: CENTER;
+}

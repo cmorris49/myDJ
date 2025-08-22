@@ -3,6 +3,7 @@ package com.mydj.desktop.ui;
 import com.mydj.desktop.model.PlaylistInfo;
 import com.mydj.desktop.model.PlaylistTrack;
 import com.mydj.desktop.service.ApiClient;
+import com.mydj.desktop.ui.util.FxUi;
 import javafx.application.Platform;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -21,12 +22,12 @@ public class PlaylistPane {
     private final VBox root = new VBox(8);
 
     private final Label playlistsTitle = new Label("Playlists");
+    private final Label currentTitle = new Label("Manage your current playlist");
+
     private final ComboBox<String> playlistCombo = new ComboBox<>();
     private final Button refreshButton = new Button("Refresh");
-    
-    private final CheckBox autoQueueCheckBox = new CheckBox("Auto-queue new tracks");
+    private final ToggleButton autoQueueToggle = new ToggleButton("Auto-Queue");
 
-    private final Label currentTitle = new Label("Current Playlist");
     private final ListView<String> trackListView = new ListView<>();
 
     private String selectedPlaylistId = null;
@@ -41,19 +42,23 @@ public class PlaylistPane {
         centerTitle(playlistsTitle);
         centerSubtitle(currentTitle);
 
-        HBox controls = new HBox(10, playlistCombo, refreshButton, autoQueueCheckBox);
+        HBox controls = new HBox(10, playlistCombo, refreshButton, autoQueueToggle);
         controls.setAlignment(Pos.CENTER_LEFT);
-        HBox.setHgrow(playlistCombo, Priority.SOMETIMES);
+        FxUi.setupEvenRow(controls, 10, 8); 
+
+        // style
         refreshButton.getStyleClass().add("toggle-like");
+        trackListView.setId("playlist-list"); 
 
         root.getChildren().setAll(
             playlistsTitle,
-            controls,
             currentTitle,
+            controls,
             trackListView
         );
         VBox.setVgrow(trackListView, Priority.ALWAYS);
 
+        // Double-click to queue & skip
         trackListView.setOnMouseClicked(evt -> {
             if (evt.getButton() == MouseButton.PRIMARY && evt.getClickCount() == 2) {
                 String disp = trackListView.getSelectionModel().getSelectedItem();
@@ -85,18 +90,18 @@ public class PlaylistPane {
                         break;
                     }
                 }
-            }, ex -> {});
+            }, ex -> System.err.println("Failed to load playlists: " + ex.getMessage()));
         });
     }
 
     private void centerTitle(Label lbl) {
-        lbl.getStyleClass().add("section-title"); 
+        lbl.getStyleClass().add("section-title");
         lbl.setMaxWidth(Double.MAX_VALUE);
         lbl.setAlignment(Pos.CENTER);
     }
 
     private void centerSubtitle(Label lbl) {
-        lbl.getStyleClass().add("section-subtitle"); 
+        lbl.getStyleClass().add("section-subtitle");
         lbl.setMaxWidth(Double.MAX_VALUE);
         lbl.setAlignment(Pos.CENTER);
     }
@@ -113,7 +118,6 @@ public class PlaylistPane {
             }
             if (!list.isEmpty()) {
                 playlistCombo.setValue(list.get(0).getName());
-                // trigger initial load
                 Platform.runLater(() -> {
                     if (playlistCombo.getOnAction() != null) {
                         playlistCombo.getOnAction().handle(null);
@@ -136,7 +140,7 @@ public class PlaylistPane {
                 displayToUri.put(disp, t.getUri());
             }
 
-            if (autoQueueCheckBox.isSelected()) {
+            if (autoQueueToggle.isSelected()) {
                 for (String disp : displays) {
                     if (!seenDisplays.contains(disp)) {
                         String uri = displayToUri.get(disp);

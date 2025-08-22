@@ -53,6 +53,7 @@ public class PlaybackBar {
         trackInfo.setMaxWidth(240);
 
         HBox leftBox = new HBox(10, albumCover, trackInfo);
+        trackInfo.setId("song-title");
         leftBox.setAlignment(Pos.CENTER_LEFT);
         leftBox.setPadding(new Insets(0, 10, 0, 0));
         leftBox.setPickOnBounds(false); 
@@ -163,7 +164,6 @@ public class PlaybackBar {
         paintFilledTrackWhite(volumeSlider);
     }
 
-    /** Called by App.java poller every 1s */
     public void refreshPlayback() {
         apiClient.getPlaybackState(state -> {
             long now = System.currentTimeMillis();

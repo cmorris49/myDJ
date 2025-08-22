@@ -22,7 +22,9 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import org.controlsfx.control.NotificationPane;
-
+import javafx.scene.text.Font;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -47,8 +49,28 @@ public class App extends Application {
         return baseMs + ThreadLocalRandom.current().nextInt(0, 400);
     }
 
+    private void loadFonts() {
+        loadFontOrDie("/fonts/Inter-Regular.ttf");
+        loadFontOrDie("/fonts/Inter-SemiBold.ttf");
+    }
+
+    private void loadFontOrDie(String path) {
+        try (InputStream in = App.class.getResourceAsStream(path)) {
+            if (in == null) {
+                throw new IllegalStateException("Font not found on classpath: " + path);
+            }
+            Font f = Font.loadFont(in, 12);
+            if (f == null) {
+                throw new IllegalStateException("Font failed to load: " + path);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Error loading font: " + path, e);
+        }
+    }
+
     @Override
     public void start(Stage stage) {
+        loadFonts();
         ToggleButton themeToggle = new ToggleButton("Dark Mode");
         themeToggle.setId("theme-toggle");
         themeToggle.setSelected(true);
@@ -91,8 +113,10 @@ public class App extends Application {
 
         // Top bar
         Button signIn = new Button("Sign in");
+        signIn.getStyleClass().add("toggle-like");
         signIn.setOnAction(e -> getHostServices().showDocument(BASE_URL + "/login"));
         Button showQr = new Button("Show QR");
+        showQr.getStyleClass().add("toggle-like");
         showQr.setDisable(true);
         showQr.setOnAction(e -> getHostServices().showDocument(BASE_URL + "/qr-default"));
         HBox leftControls = new HBox(8, signIn, showQr);
