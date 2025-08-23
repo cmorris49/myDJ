@@ -9,6 +9,7 @@ public class PlaybackState {
     private int volumePercent;
     private String deviceId;
     private String albumImageUrl;
+    private String trackUri;
 
     public PlaybackState() {}
 
@@ -36,4 +37,7 @@ public class PlaybackState {
 
     public String getAlbumImageUrl() { return albumImageUrl; }
     public void setAlbumImageUrl(String albumImageUrl) { this.albumImageUrl = albumImageUrl; }
+
+    public String getTrackUri() { return trackUri; }
+    public void setTrackUri(String trackUri) { this.trackUri = trackUri; }
 }

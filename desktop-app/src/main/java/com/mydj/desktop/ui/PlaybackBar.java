@@ -1,5 +1,7 @@
 package com.mydj.desktop.ui;
 
+import java.util.HashMap;
+
 import com.mydj.desktop.model.PlaybackState;
 import com.mydj.desktop.service.ApiClient;
 import javafx.animation.KeyFrame;
@@ -18,6 +20,8 @@ import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.util.Duration;
+import java.util.Map;
+import javafx.scene.CacheHint;
 
 public class PlaybackBar {
     private final BorderPane root = new BorderPane();
@@ -31,12 +35,19 @@ public class PlaybackBar {
     private final Slider volumeSlider = new Slider(0, 100, 50);
     private final Label volumeStatus = new Label();
     private final ImageView albumCover = new ImageView();
+    private String currentAlbumUrl = null;
+    private final Map<String, Image> albumImageCache = new HashMap<>();
     private final ApiClient apiClient;
     private final Label statusLabel;
     private PlaybackState lastState;
     private long lastStateFetchTimestamp;
     private boolean isSeeking = false;
     private Timeline smoothUpdater;
+    private volatile String currentTrackUri; 
+
+    public String getCurrentTrackUri() {
+        return currentTrackUri;
+    }
 
     public PlaybackBar(ApiClient apiClient, Label statusLabel) {
         this.apiClient = apiClient;
@@ -45,9 +56,12 @@ public class PlaybackBar {
         root.setPadding(new Insets(10));
 
         // album cover and title 
-        albumCover.setFitWidth(50);
-        albumCover.setFitHeight(50);
+        albumCover.setFitWidth(75);
+        albumCover.setFitHeight(75);
         albumCover.setPreserveRatio(true);
+        albumCover.setSmooth(true);
+        albumCover.setCache(true);
+        albumCover.setCacheHint(CacheHint.SPEED);
 
         trackInfo.setTextOverrun(OverrunStyle.ELLIPSIS);
         trackInfo.setMaxWidth(240);
@@ -173,6 +187,8 @@ public class PlaybackBar {
             int apiProg = state.getProgressMs();
             int lastProg = (lastState != null) ? lastState.getProgressMs() : -1;
 
+            this.currentTrackUri = state.getTrackUri(); 
+
             if (isNewTrack || apiProg >= lastProg) {
                 lastState = state;
                 lastStateFetchTimestamp = now;
@@ -181,8 +197,31 @@ public class PlaybackBar {
                     playPauseBtn.setText(state.isPlaying() ? "⏸" : "▶");
 
                     // album art
-                    if (state.getAlbumImageUrl() != null && !state.getAlbumImageUrl().isBlank()) {
-                        albumCover.setImage(new Image(state.getAlbumImageUrl(), true));
+                    String url = state.getAlbumImageUrl();
+                    if (url != null && !url.isBlank()) {
+                        if (!url.equals(currentAlbumUrl)) {
+                            currentAlbumUrl = url;
+
+                            Image cached = albumImageCache.get(url);
+                            if (cached != null && cached.getProgress() >= 1.0 && !cached.isError()) {
+                                albumCover.setImage(cached);
+                            } else {
+                                Image pending = new Image(url, true);
+                                albumImageCache.put(url, pending);
+
+                                if (pending.isBackgroundLoading()) {
+                                    pending.progressProperty().addListener((obs, ov, nv) -> {
+                                        if (nv.doubleValue() >= 1.0) {
+                                            if (url.equals(currentAlbumUrl)) {
+                                                albumCover.setImage(pending);
+                                            }
+                                        }
+                                    });
+                                } else {
+                                    albumCover.setImage(pending);
+                                }
+                            }
+                        }
                     }
 
                     if (!progressSlider.isValueChanging() && !isSeeking) {

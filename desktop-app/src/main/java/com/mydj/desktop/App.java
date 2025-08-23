@@ -31,6 +31,10 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.ButtonBar;
+import com.mydj.desktop.ui.util.FxUi;
 
 public class App extends Application {
 
@@ -44,6 +48,8 @@ public class App extends Application {
     private Label status;
     private final ScheduledExecutorService poller = Executors.newSingleThreadScheduledExecutor();
     private Consumer<String> notifier;
+    private volatile boolean loggedIn = false;
+    private Scene scene; 
 
     private static long jitterMs(int baseMs) {
         return baseMs + ThreadLocalRandom.current().nextInt(0, 400);
@@ -114,7 +120,35 @@ public class App extends Application {
         // Top bar
         Button signIn = new Button("Sign in");
         signIn.getStyleClass().add("toggle-like");
-        signIn.setOnAction(e -> getHostServices().showDocument(BASE_URL + "/login"));
+
+        signIn.setOnAction(e -> {
+            if (!loggedIn) {
+                getHostServices().showDocument(BASE_URL + "/login");
+            } else {
+                Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+                confirm.setHeaderText("Sign out?");
+                confirm.setContentText("You’ll need to sign in again to control playback.");
+                ButtonType cancel   = ButtonType.CANCEL;
+                ButtonType signOutB = new ButtonType("Sign out", ButtonBar.ButtonData.OK_DONE);
+                confirm.getButtonTypes().setAll(cancel, signOutB);
+
+                FxUi.applySceneStylesToDialog(scene, confirm.getDialogPane());
+                confirm.initOwner(stage);
+
+                var res = confirm.showAndWait();
+                if (res.isPresent() && res.get().getButtonData() == ButtonBar.ButtonData.OK_DONE) {
+                    apiClient.logout(
+                        () -> {
+                            loggedIn = false;
+                            signIn.setText("Sign in");
+                            status.setText("Signed out");
+                        },
+                        err -> status.setText("Sign out failed: " + (err.getMessage() == null ? err : err.getMessage()))
+                    );
+                }
+            }
+        });
+
         Button showQr = new Button("Show QR");
         showQr.getStyleClass().add("toggle-like");
         showQr.setDisable(true);
@@ -129,6 +163,17 @@ public class App extends Application {
             spacer,                    
             deviceSelector.getNode(),
             themeToggle
+        );
+
+        Runnable refreshAuthUi = () -> apiClient.checkLogin(ok -> {
+            loggedIn = ok;
+            signIn.setText(ok ? "Sign out" : "Sign in");
+        });
+        refreshAuthUi.run();
+
+        poller.scheduleAtFixedRate(
+            () -> Platform.runLater(refreshAuthUi),
+            jitterMs(5000), 10_000, java.util.concurrent.TimeUnit.MILLISECONDS
         );
 
         // Middle content
@@ -162,7 +207,7 @@ public class App extends Application {
         };
 
         // Scene
-        Scene scene = new Scene(notificationPane, 1000, 700);
+        scene = new Scene(notificationPane, 1000, 700);
         scene.getStylesheets().add(getClass().getResource("/styles.css").toExternalForm());
         applyTheme(scene, themeToggle.isSelected());
         themeToggle.selectedProperty().addListener((obs, oldV, newV) -> applyTheme(scene, newV));
@@ -174,18 +219,27 @@ public class App extends Application {
         apiClient.checkLogin(isAuthed -> showQr.setDisable(!isAuthed));
         poller.scheduleAtFixedRate(
             () -> apiClient.checkLogin(isAuthed -> showQr.setDisable(!isAuthed)),
-            jitterMs(2000), 10_000, java.util.concurrent.TimeUnit.MILLISECONDS
+            jitterMs(2000), 10_000, TimeUnit.MILLISECONDS
         );
 
         Platform.runLater(() -> {
             playbackBar.refreshPlayback();
+            String cur = playbackBar.getCurrentTrackUri();
+            playlistPane.setCurrentlyPlayingUri(cur);
+            requestsPane.setCurrentlyPlayingUri(cur);
+
             playlistPane.refreshTracks();
             requestsPane.loadRequests();
             deviceSelector.refreshDevices();
         });
 
         // Polling
-        poller.scheduleAtFixedRate(() -> Platform.runLater(playbackBar::refreshPlayback), 0, 1, TimeUnit.SECONDS);
+        poller.scheduleAtFixedRate(() -> Platform.runLater(() -> {
+            playbackBar.refreshPlayback();
+            String cur = playbackBar.getCurrentTrackUri();   
+            playlistPane.setCurrentlyPlayingUri(cur);        
+            requestsPane.setCurrentlyPlayingUri(cur);        
+        }), 0, 1, TimeUnit.SECONDS);
         poller.scheduleAtFixedRate(() -> Platform.runLater(playlistPane::refreshTracks), jitterMs(1500), 15_000, TimeUnit.MILLISECONDS);
         poller.scheduleAtFixedRate(() -> Platform.runLater(requestsPane::loadRequests), jitterMs(3000), 10_000, TimeUnit.MILLISECONDS);
         poller.scheduleAtFixedRate(() -> Platform.runLater(deviceSelector::refreshDevices), jitterMs(4500), 30_000, TimeUnit.MILLISECONDS);

@@ -7,7 +7,6 @@ import com.mydj.desktop.model.PlaylistInfo;
 import com.mydj.desktop.model.PlaylistTrack;
 import com.mydj.desktop.model.RequestRecord;
 import javafx.application.Platform;
-
 import java.net.CookieManager;
 import java.net.CookiePolicy;
 import java.net.HttpCookie;
@@ -22,6 +21,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import com.mydj.desktop.model.PlaybackState;
 
 public class ApiClient {
 
@@ -72,11 +72,11 @@ public class ApiClient {
         System.out.println("[ApiClient] " + msg);
     }
 
-    public void checkLogin(java.util.function.Consumer<Boolean> onResult) {
-        client.sendAsync(build("GET", "/me", null), java.net.http.HttpResponse.BodyHandlers.ofString())
+    public void checkLogin(Consumer<Boolean> onResult) {
+        client.sendAsync(build("GET", "/me", null), HttpResponse.BodyHandlers.ofString())
             .whenComplete((resp, err) -> {
                 boolean ok = (err == null && resp.statusCode() == 200);
-                javafx.application.Platform.runLater(() -> onResult.accept(ok));
+                Platform.runLater(() -> onResult.accept(ok));
             });
     }
     
@@ -260,16 +260,16 @@ public class ApiClient {
         );
     }
 
-    public void getPlaybackState(Consumer<com.mydj.desktop.model.PlaybackState> onSuccess, Consumer<Throwable> onError) {
+    public void getPlaybackState(Consumer<PlaybackState> onSuccess, Consumer<Throwable> onError) {
         withRetries(
             () -> client.sendAsync(build("GET", "/playback", null), HttpResponse.BodyHandlers.ofString())
                         .thenApply(resp -> { log("GET /playback status="+resp.statusCode()); return resp.body(); }),
             body -> {
                 if (body == null || body.isBlank()) {
-                    Platform.runLater(() -> onSuccess.accept(new com.mydj.desktop.model.PlaybackState()));
+                    Platform.runLater(() -> onSuccess.accept(new PlaybackState()));
                 } else {
                     try {
-                        com.mydj.desktop.model.PlaybackState state = mapper.readValue(body, new TypeReference<>() {});
+                        PlaybackState state = mapper.readValue(body, new TypeReference<>() {});
                         Platform.runLater(() -> onSuccess.accept(state));
                     } catch (Exception e) {
                         Platform.runLater(() -> onError.accept(e));
@@ -390,7 +390,7 @@ public class ApiClient {
             return;
         }
         if (Objects.equals(deviceId, lastSetDeviceId)) {
-            javafx.application.Platform.runLater(onSuccess);
+            Platform.runLater(onSuccess);
             return;
         }
 
@@ -401,10 +401,22 @@ public class ApiClient {
                 .thenApply(resp -> { log("POST /setDevice status=" + resp.statusCode()); return resp.body()==null?"":resp.body(); }),
             body -> {
                 lastSetDeviceId = deviceId;
-                javafx.application.Platform.runLater(onSuccess);
+                Platform.runLater(onSuccess);
             },
             onError,
             1
         );
+    }
+
+    public void logout(Runnable onSuccess, Consumer<Throwable> onError) {
+        client.sendAsync(build("POST", "/logout", null), HttpResponse.BodyHandlers.ofString())
+            .thenApply(resp -> { log("POST /logout status=" + resp.statusCode()); return resp; })
+            .thenAccept(r -> {
+                try {
+                    cookieManager.getCookieStore().removeAll();
+                } catch (Exception ignored) {}
+                Platform.runLater(onSuccess);
+            })
+            .exceptionally(t -> { Platform.runLater(() -> onError.accept(t)); return null; });
     }
 }

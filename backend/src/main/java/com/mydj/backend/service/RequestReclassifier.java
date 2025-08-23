@@ -1,10 +1,9 @@
 package com.mydj.backend.service;
 
 import com.mydj.backend.model.RequestRecord;
-
 import se.michaelthelin.spotify.model_objects.specification.Artist;
 import se.michaelthelin.spotify.model_objects.specification.Track;
-
+import com.mydj.backend.util.UriUtils;
 import java.util.*;
 import org.springframework.stereotype.Service;
 
@@ -39,24 +38,24 @@ public class RequestReclassifier {
       var rebuilt = new ArrayList<RequestRecord>(snapshot.size());
 
       for (RequestRecord r : snapshot) {
-          String uri = com.mydj.backend.util.UriUtils.canonicalTrackUri(r.getUri());
+          String uri = UriUtils.canonicalTrackUri(r.getUri());
           Track track = trackCache.computeIfAbsent(uri, u -> {
               try { return spotifyService.getTrack(u); } catch (Exception e) { return null; }
           });
           if (track == null) { rebuilt.add(r); continue; }
 
-          java.util.Set<String> genreSet = new java.util.LinkedHashSet<>();
+          Set<String> genreSet = new LinkedHashSet<>();
           for (se.michaelthelin.spotify.model_objects.specification.ArtistSimplified a : track.getArtists()) {
               Artist full = artistCache.computeIfAbsent(a.getId(), id -> {
                   try { return spotifyService.getArtist(id); } catch (Exception e) { return null; }
               });
               if (full != null && full.getGenres() != null) {
                   for (String g : full.getGenres()) {
-                      if (g != null && !g.isBlank()) genreSet.add(g.toLowerCase(java.util.Locale.ROOT).trim());
+                      if (g != null && !g.isBlank()) genreSet.add(g.toLowerCase(Locale.ROOT).trim());
                   }
               }
           }
-          java.util.List<String> artistGenres = new java.util.ArrayList<>(genreSet);
+          List<String> artistGenres = new ArrayList<>(genreSet);
 
           RequestRecord re = classificationService.classify(
               owner,

@@ -11,32 +11,35 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import javafx.css.PseudoClass;
 
 import java.util.*;
 import java.util.function.BiConsumer;
 
 public class RequestsPane {
+
     private final ApiClient apiClient;
-
     private final VBox root = new VBox(12);
-
     private final ListView<String> validListView = new ListView<>();
     private final ListView<String> invalidListView = new ListView<>();
-
     private final ToggleButton autoAddToggle = new ToggleButton("Auto-Add Valid");
     private final ToggleButton explicitToggle = new ToggleButton("Allow Explicit");
     private final HBox toggles = new HBox(10, autoAddToggle, explicitToggle);
-
     private final Label validTitle   = new Label("Valid Requests");
     private final Label invalidTitle = new Label("Invalid Requests");
     private final Label allowedHeading = new Label("Allowed Genres: all");
-
     private final VBox validBox = new VBox(8);
     private final VBox invalidBox = new VBox(8);
-
     private final Map<String, String> displayToUri = new HashMap<>();
-
     private BiConsumer<String, String> onAddToPlaylist = (d, u) -> {};
+    private static final PseudoClass PC_PLAYING = PseudoClass.getPseudoClass("playing");
+    private volatile String playingUri;
+
+    public void setCurrentlyPlayingUri(String uri) {
+        this.playingUri = uri;
+        if (validListView != null)  validListView.refresh(); 
+        if (invalidListView != null) invalidListView.refresh();
+    }
 
     public RequestsPane(ApiClient apiClient) {
         this.apiClient = apiClient;
@@ -74,6 +77,22 @@ public class RequestsPane {
                 }
             }
         });
+        validListView.setCellFactory(lv -> new ListCell<String>() {
+            @Override
+            protected void updateItem(String display, boolean empty) {
+                super.updateItem(display, empty);
+                if (empty || display == null) {
+                    setText(null);
+                    pseudoClassStateChanged(PC_PLAYING, false);
+                    return;
+                }
+                setText(display);
+
+                String uri = displayToUri.get(display); // <-- your existing lookup
+                boolean isPlaying = playingUri != null && playingUri.equals(uri);
+                pseudoClassStateChanged(PC_PLAYING, isPlaying);
+            }
+        });
         invalidListView.setOnMouseClicked(evt -> {
             if (evt.getButton() == MouseButton.PRIMARY && evt.getClickCount() == 2) {
                 String display = invalidListView.getSelectionModel().getSelectedItem();
@@ -81,6 +100,22 @@ public class RequestsPane {
                     String uri = displayToUri.get(display);
                     if (uri != null && !uri.isBlank()) onAddToPlaylist.accept(display, uri);
                 }
+            }
+        });
+        invalidListView.setCellFactory(lv -> new ListCell<String>() {
+            @Override
+            protected void updateItem(String display, boolean empty) {
+                super.updateItem(display, empty);
+                if (empty || display == null) {
+                    setText(null);
+                    pseudoClassStateChanged(PC_PLAYING, false);
+                    return;
+                }
+                setText(display);
+
+                String uri = displayToUri.get(display); // <-- your existing lookup
+                boolean isPlaying = playingUri != null && playingUri.equals(uri);
+                pseudoClassStateChanged(PC_PLAYING, isPlaying);
             }
         });
 

@@ -4,7 +4,6 @@ import com.mydj.backend.service.SpotifyService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.net.URI;
 import java.util.Map;
 
@@ -48,5 +47,11 @@ public class AuthController {
     public ResponseEntity<Map<String, String>> accessToken() {
         String token = spotifyService.getAccessToken();
         return ResponseEntity.ok(Map.of("accessToken", token == null ? "" : token));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Map<String, String>> logout() {
+        spotifyService.logout();
+        return ResponseEntity.ok(Map.of("status", "ok"));
     }
 }

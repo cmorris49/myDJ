@@ -11,6 +11,8 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
 import java.util.*;
 import java.util.function.Consumer;
+import javafx.beans.property.SimpleBooleanProperty;
+import java.util.stream.Collectors;
 
 public class GenreSelector {
 
@@ -80,8 +82,7 @@ public class GenreSelector {
         listView.getStyleClass().add("dialog-list");
 
         listView.setCellFactory(lv -> new CheckBoxListCell<>(item -> {
-            javafx.beans.property.SimpleBooleanProperty prop =
-                new javafx.beans.property.SimpleBooleanProperty(allowed.contains(item));
+            SimpleBooleanProperty prop = new SimpleBooleanProperty(allowed.contains(item));
             prop.addListener((obs, was, is) -> {
                 if (is) allowed.add(item);
                 else    allowed.remove(item);
@@ -90,10 +91,10 @@ public class GenreSelector {
         }));
 
         search.textProperty().addListener((obs, ov, nv) -> {
-            String q = nv == null ? "" : nv.trim().toLowerCase(java.util.Locale.ROOT);
-            java.util.List<String> filtered = allGenres.stream()
-                .filter(g -> g.toLowerCase(java.util.Locale.ROOT).contains(q))
-                .collect(java.util.stream.Collectors.toList());
+            String q = nv == null ? "" : nv.trim().toLowerCase(Locale.ROOT);
+            List<String> filtered = allGenres.stream()
+                .filter(g -> g.toLowerCase(Locale.ROOT).contains(q))
+                .collect(Collectors.toList());
             listView.getItems().setAll(filtered);
         });
 
@@ -113,9 +114,9 @@ public class GenreSelector {
             if (cancel != null) cancel.getStyleClass().add("toggle-like");
         });
 
-        dialog.setResultConverter(bt -> bt == saveBtnType ? new java.util.ArrayList<>(allowed) : null);
+        dialog.setResultConverter(bt -> bt == saveBtnType ? new ArrayList<>(allowed) : null);
 
-        java.util.Optional<java.util.List<String>> result = dialog.showAndWait();
+        Optional<List<String>> result = dialog.showAndWait();
         result.ifPresent(selected -> {
             apiClient.sendAllowedGenres(selected,
                 () -> Platform.runLater(this::fireAllowedChanged),

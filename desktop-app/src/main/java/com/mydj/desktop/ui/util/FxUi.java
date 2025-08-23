@@ -8,6 +8,8 @@ import javafx.scene.Parent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
+import javafx.scene.Scene;
+import javafx.scene.control.DialogPane;
 
 public final class FxUi {
     private FxUi() {}
@@ -62,6 +64,12 @@ public final class FxUi {
             for (Node c : p.getChildrenUnmodifiable()) {
                 if (c instanceof Region r2) r2.setMaxWidth(Double.MAX_VALUE);
             }
+        }
+    }
+
+    public static void applySceneStylesToDialog(Scene scene, DialogPane pane) {
+        if (scene != null && pane != null) {
+            pane.getStylesheets().setAll(scene.getStylesheets());
         }
     }
 }

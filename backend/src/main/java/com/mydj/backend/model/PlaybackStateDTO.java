@@ -9,6 +9,7 @@ public class PlaybackStateDTO {
     private int volumePercent;
     private String deviceId;
     private String albumImageUrl;
+    private String trackUri;
 
     public PlaybackStateDTO() {} 
 
@@ -21,6 +22,14 @@ public class PlaybackStateDTO {
         this.durationMs = durationMs;
         this.volumePercent = volumePercent;
         this.deviceId = deviceId;
+    }
+
+    public String getTrackUri() { 
+        return trackUri; 
+    }
+
+    public void setTrackUri(String trackUri) { 
+        this.trackUri = trackUri; 
     }
 
     public String getTrackName() {

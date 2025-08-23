@@ -18,13 +18,13 @@ import se.michaelthelin.spotify.model_objects.specification.*;
 import se.michaelthelin.spotify.requests.authorization.authorization_code.AuthorizationCodeRefreshRequest;
 import se.michaelthelin.spotify.requests.authorization.authorization_code.AuthorizationCodeRequest;
 import se.michaelthelin.spotify.requests.authorization.authorization_code.AuthorizationCodeUriRequest;
-
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.*;
 import java.util.*;
+import java.io.IOException;
 
 @Service
 public class SpotifyService {
@@ -159,6 +159,17 @@ public class SpotifyService {
     public se.michaelthelin.spotify.model_objects.specification.User getCurrentUserProfile() throws Exception {
         refreshIfNeeded();
         return spotifyApi.getCurrentUsersProfile().build().execute();
+    }
+
+    public synchronized void logout() {
+        try {
+            this.accessToken = null;
+            this.refreshToken = null;
+            this.currentDeviceId = null; 
+            spotifyApi.setAccessToken(null);
+            spotifyApi.setRefreshToken(null);
+            persistTokens();
+        } catch (Exception ignored) {}
     }
 
     // Search/lookup/playlist operations 
@@ -376,7 +387,7 @@ public class SpotifyService {
         spotifyApi.removeItemsFromPlaylist(playlistId, tracks).build().execute();
     }
 
-    private void sendPlaybackCommand(String method, String path) throws java.io.IOException, java.lang.InterruptedException {
+    private void sendPlaybackCommand(String method, String path) throws IOException, InterruptedException {
         refreshIfNeeded();
         HttpRequest.Builder builder = HttpRequest.newBuilder()
             .uri(URI.create("https://api.spotify.com/v1/me/player/" + path))

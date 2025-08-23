@@ -12,29 +12,34 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import javafx.css.PseudoClass;
 
 import java.util.*;
 import java.util.function.Consumer;
 
 public class PlaylistPane {
+
     private final ApiClient apiClient;
-
     private final VBox root = new VBox(8);
-
     private final Label playlistsTitle = new Label("Playlists");
     private final Label currentTitle = new Label("Manage your current playlist");
-
     private final ComboBox<String> playlistCombo = new ComboBox<>();
     private final Button refreshButton = new Button("Refresh");
     private final ToggleButton autoQueueToggle = new ToggleButton("Auto-Queue");
-
     private final ListView<String> trackListView = new ListView<>();
-
     private String selectedPlaylistId = null;
     private Consumer<PlaylistInfo> onPlaylistChanged = p -> {};
-
     private final Map<String, String> displayToUri = new HashMap<>();
     private Set<String> seenDisplays = new HashSet<>();
+    private static final PseudoClass PC_PLAYING = PseudoClass.getPseudoClass("playing");
+    private volatile String playingUri;
+
+    public void setCurrentlyPlayingUri(String uri) {
+        this.playingUri = uri;
+        if (trackListView != null) { 
+            trackListView.refresh();
+        }
+    }
 
     public PlaylistPane(ApiClient apiClient) {
         this.apiClient = apiClient;
@@ -57,6 +62,23 @@ public class PlaylistPane {
             trackListView
         );
         VBox.setVgrow(trackListView, Priority.ALWAYS);
+
+        trackListView.setCellFactory(lv -> new ListCell<String>() {
+            @Override
+            protected void updateItem(String display, boolean empty) {
+                super.updateItem(display, empty);
+                if (empty || display == null) {
+                    setText(null);
+                    pseudoClassStateChanged(PC_PLAYING, false);
+                    return;
+                }
+                setText(display);
+
+                String uri = displayToUri.get(display); 
+                boolean isPlaying = playingUri != null && playingUri.equals(uri);
+                pseudoClassStateChanged(PC_PLAYING, isPlaying);
+            }
+        });
 
         // Double-click to queue & skip
         trackListView.setOnMouseClicked(evt -> {

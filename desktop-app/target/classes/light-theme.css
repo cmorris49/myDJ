@@ -190,3 +190,36 @@
   -fx-padding: 8 14 8 14;
   -fx-alignment: CENTER;
 }
+
+.dialog-pane { -fx-background-color: white; }
+.dialog-pane .content.label { -fx-text-fill: black; }
+.dialog-pane .header-panel .label { -fx-text-fill: black; }
+.dialog-pane .button {
+  -fx-background-color: rgba(0,0,0,0.06);
+  -fx-text-fill: black;
+  -fx-border-color: rgba(0,0,0,0.18);
+  -fx-border-radius: 999;
+  -fx-background-radius: 999;
+  -fx-padding: 8 14;
+}
+.dialog-pane .button:hover { 
+  -fx-background-color: rgba(0,0,0,0.08); 
+}
+
+.list-view .list-cell:filled:selected,
+.list-view .list-cell:filled:selected:focused {
+  -fx-background-color: #ededed; 
+  -fx-text-fill: black;
+}
+
+.list-view .list-cell:playing {
+  -fx-background-color: #1DB954; 
+  -fx-text-fill: black;
+}
+
+.list-view .list-cell:filled:selected.playing,
+.list-view .list-cell:filled:selected:focused.playing {
+  -fx-background-color: #1DB954;
+  -fx-text-fill: black;
+}
+

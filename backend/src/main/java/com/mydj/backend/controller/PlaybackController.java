@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.*;
 
 import se.michaelthelin.spotify.model_objects.miscellaneous.CurrentlyPlayingContext;
 import se.michaelthelin.spotify.model_objects.specification.Track;
-
+import com.mydj.backend.util.UriUtils;
 import java.util.Map;
 import java.util.Optional;
 
@@ -37,12 +37,15 @@ public class PlaybackController {
             String artistName = "";
             int durationMs = 0;
             String albumImageUrl = null;
+            String trackUri = null;
 
             if (ctx.getItem() instanceof Track t) {
                 trackName = t.getName();
                 artistName = t.getArtists().length > 0 ? t.getArtists()[0].getName() : "";
                 durationMs = t.getDurationMs();
 
+                trackUri = t.getUri();
+                
                 var images = (t.getAlbum() != null) ? t.getAlbum().getImages() : null;
                 if (images != null && images.length > 0) {
                     albumImageUrl = images[0].getUrl(); 
@@ -59,7 +62,9 @@ public class PlaybackController {
                     deviceId
             );
             dto.setAlbumImageUrl(albumImageUrl);
-
+            if (trackUri != null && !trackUri.isBlank()) {                 
+                dto.setTrackUri(UriUtils.canonicalTrackUri(trackUri));      
+            }
             return ResponseEntity.ok(dto);
         } catch (Exception e) {
             e.printStackTrace();
