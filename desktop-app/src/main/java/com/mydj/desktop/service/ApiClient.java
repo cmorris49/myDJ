@@ -68,6 +68,13 @@ public class ApiClient {
         return null;
     }
 
+    private static String encode(String s) {
+        return s == null ? "" : URLEncoder.encode(s, StandardCharsets.UTF_8);
+    }
+    private static String qp(String k, String v) { 
+        return k + "=" + encode(v);
+    }
+
     private void log(String msg) {
         System.out.println("[ApiClient] " + msg);
     }
@@ -308,6 +315,28 @@ public class ApiClient {
             .thenAccept(r -> Platform.runLater(onSuccess))
             .exceptionally(t -> { Platform.runLater(() -> onError.accept(t)); return null; });
     }
+
+    public void playFromPlaylist(String playlistId, String trackUri, Runnable onSuccess, Consumer<Throwable> onError) {
+        String path = "/play/playlist?" + qp("playlistId", playlistId) + "&" + qp("uri", trackUri);
+        client.sendAsync(build("POST", path, null), HttpResponse.BodyHandlers.ofString())
+            .thenAccept(r -> Platform.runLater(onSuccess))
+            .exceptionally(t -> { Platform.runLater(() -> onError.accept(t)); return null; });
+    }
+
+    public void setShuffle(boolean state, Runnable onSuccess, Consumer<Throwable> onError) {
+        String path = "/player/shuffle?state=" + (state ? "true" : "false");
+        client.sendAsync(build("POST", path, null), HttpResponse.BodyHandlers.ofString())
+            .thenAccept(r -> Platform.runLater(onSuccess))
+            .exceptionally(t -> { Platform.runLater(() -> onError.accept(t)); return null; });
+    }
+
+    public void setRepeat(String mode, Runnable onSuccess, Consumer<Throwable> onError) { 
+        String path = "/player/repeat?" + qp("mode", mode);
+        client.sendAsync(build("POST", path, null), HttpResponse.BodyHandlers.ofString())
+            .thenAccept(r -> Platform.runLater(onSuccess))
+            .exceptionally(t -> { Platform.runLater(() -> onError.accept(t)); return null; });
+    }
+
 
     public void seek(int positionMs, Runnable onSuccess, Consumer<Throwable> onError) {
         try {

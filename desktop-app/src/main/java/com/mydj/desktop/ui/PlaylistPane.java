@@ -8,11 +8,11 @@ import javafx.application.Platform;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.*;
-import javafx.scene.input.MouseButton;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.css.PseudoClass;
+import javafx.scene.input.MouseEvent;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -81,18 +81,19 @@ public class PlaylistPane {
         });
 
         // Double-click to queue & skip
-        trackListView.setOnMouseClicked(evt -> {
-            if (evt.getButton() == MouseButton.PRIMARY && evt.getClickCount() == 2) {
-                String disp = trackListView.getSelectionModel().getSelectedItem();
-                String uri = displayToUri.get(disp);
-                if (uri != null) {
-                    new Thread(() -> {
-                        apiClient.queue(uri,
-                            () -> apiClient.next(() -> {}, ex -> {}),
-                            ex -> {}
-                        );
-                    }, "QueueAndSkip").start();
-                }
+        trackListView.setOnMouseClicked((MouseEvent e) -> {
+            if (e.getClickCount() == 2) {
+                String display = trackListView.getSelectionModel().getSelectedItem();
+                if (display == null) return;
+
+                String trackUri = displayToUri.get(display);
+                String playlistId = getSelectedPlaylistId(); 
+
+                if (playlistId == null || trackUri == null) return;
+
+                apiClient.playFromPlaylist(playlistId, trackUri, () -> {}, err -> {});
+                setCurrentlyPlayingUri(trackUri);
+                trackListView.getSelectionModel().clearSelection();
             }
         });
 

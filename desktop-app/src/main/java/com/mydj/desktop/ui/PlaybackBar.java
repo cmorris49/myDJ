@@ -7,6 +7,10 @@ import com.mydj.desktop.service.ApiClient;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -30,6 +34,8 @@ public class PlaybackBar {
     private final Button prevBtn = new Button("⏮");
     private final Button playPauseBtn = new Button("▶");
     private final Button nextBtn = new Button("⏭");
+    private final Button shuffleBtn = new Button("Shuffle");
+    private final Button repeatBtn  = new Button("Repeat");
     private final Slider progressSlider = new Slider(0, 1, 0);
     private final Label timeLabel = new Label("0:00 / 0:00");
     private final Slider volumeSlider = new Slider(0, 100, 50);
@@ -77,7 +83,7 @@ public class PlaybackBar {
         playPauseBtn.getStyleClass().addAll("transport-btn", "transport-btn-primary");
         nextBtn.getStyleClass().add("transport-btn");
 
-        HBox controlsBox = new HBox(12, prevBtn, playPauseBtn, nextBtn);
+        HBox controlsBox = new HBox(12, shuffleBtn, prevBtn, playPauseBtn, nextBtn, repeatBtn);
         controlsBox.setAlignment(Pos.CENTER);
 
         progressSlider.setPrefWidth(360);
@@ -148,6 +154,27 @@ public class PlaybackBar {
                 ex -> updateStatus("Next failed: " + ex.getMessage())
             )
         ));
+        final BooleanProperty shuffleOn = new SimpleBooleanProperty(false);
+        shuffleBtn.setOnAction(e -> {
+            boolean target = !shuffleOn.get();
+            apiClient.setShuffle(target, () -> {
+                shuffleOn.set(target);
+                shuffleBtn.setOpacity(target ? 1.0 : 0.65);
+            }, err -> {});
+        });
+        final StringProperty repeatMode = new SimpleStringProperty("off");
+        repeatBtn.setOnAction(e -> {
+            String next = switch (repeatMode.get()) {
+                case "off" -> "context";
+                case "context" -> "track";
+                default -> "off";
+            };
+            apiClient.setRepeat(next, () -> {
+                repeatMode.set(next);
+                repeatBtn.setText("Repeat: " + next);
+                repeatBtn.setOpacity("off".equals(next) ? 0.65 : 1.0);
+            }, err -> {});
+        });
 
         // Volume slider on release
         volumeSlider.addEventHandler(MouseEvent.MOUSE_RELEASED, e -> {

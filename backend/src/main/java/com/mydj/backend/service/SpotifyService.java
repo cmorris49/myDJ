@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import com.mydj.backend.util.UriUtils;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,6 +26,7 @@ import java.net.http.HttpResponse;
 import java.nio.file.*;
 import java.util.*;
 import java.io.IOException;
+import com.google.gson.JsonParser;
 
 @Service
 public class SpotifyService {
@@ -343,6 +345,24 @@ public class SpotifyService {
         arr.add(deviceId);
         spotifyApi.transferUsersPlayback(arr).play(play).build().execute();
         this.currentDeviceId = deviceId;
+    }
+
+    public void playFromPlaylist(String playlistId, String trackUri) throws Exception {
+        JsonObject offset = JsonParser.parseString("{\"uri\":\"" + trackUri + "\"}").getAsJsonObject();
+        var req = spotifyApi.startResumeUsersPlayback()
+            .context_uri("spotify:playlist:" + playlistId)
+            .offset(offset)      // start at that track inside the playlist
+            .position_ms(0)
+            .build();
+        req.execute();
+    }
+
+    public void setShuffle(boolean state) throws Exception {
+        spotifyApi.toggleShuffleForUsersPlayback(state).build().execute();
+    }
+
+    public void setRepeat(String mode) throws Exception { // "off" | "context" | "track"
+        spotifyApi.setRepeatModeOnUsersPlayback(mode).build().execute();
     }
 
     // Genre seeds 

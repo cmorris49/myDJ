@@ -165,5 +165,38 @@ public class PlaybackController {
             return ResponseEntity.status(500).body("Queue failed: " + e.getMessage());
         }
     }
-    
+
+    @PostMapping("/play/playlist")
+    public ResponseEntity<String> playFromPlaylist(@RequestParam("playlistId") String playlistId,
+                                                @RequestParam("uri") String trackUri) {
+        try {
+            spotifyService.playFromPlaylist(playlistId, trackUri);
+            return ResponseEntity.ok("ok");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("error");
+        }
+    }
+
+    @PostMapping("/player/shuffle")
+    public ResponseEntity<String> setShuffle(@RequestParam("state") boolean state) {
+        try {
+            spotifyService.setShuffle(state);
+            return ResponseEntity.ok("ok");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("error");
+        }
+    }
+
+    @PostMapping("/player/repeat")
+    public ResponseEntity<String> setRepeat(@RequestParam("mode") String mode) { // "off" | "context" | "track"
+        try {
+            spotifyService.setRepeat(mode);
+            return ResponseEntity.ok("ok");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("error");
+        }
+    }
 }
