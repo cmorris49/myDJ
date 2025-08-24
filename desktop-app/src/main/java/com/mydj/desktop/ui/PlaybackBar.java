@@ -7,8 +7,6 @@ import com.mydj.desktop.service.ApiClient;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.beans.value.ChangeListener;
@@ -33,9 +31,9 @@ public class PlaybackBar {
     private final Label trackInfo = new Label();
     private final Button prevBtn = new Button("⏮");
     private final Button playPauseBtn = new Button("▶");
-    private final Button nextBtn = new Button("⏭");
-    private final Button shuffleBtn = new Button("Shuffle");
-    private final Button repeatBtn  = new Button("Repeat");
+    private final Button nextBtn = new Button("⏭"); 
+    private Button shuffleBtn = new Button("⇄");   
+    private Button repeatBtn  = new Button();  
     private final Slider progressSlider = new Slider(0, 1, 0);
     private final Label timeLabel = new Label("0:00 / 0:00");
     private final Slider volumeSlider = new Slider(0, 100, 50);
@@ -79,12 +77,29 @@ public class PlaybackBar {
         leftBox.setPickOnBounds(false); 
 
         // CENTER: transport progress 
+        shuffleBtn.getStyleClass().add("control-icon-btn");
         prevBtn.getStyleClass().add("transport-btn");
-        playPauseBtn.getStyleClass().addAll("transport-btn", "transport-btn-primary");
+        playPauseBtn.getStyleClass().addAll("transport-btn", "transport-btn-primary", "lg");
         nextBtn.getStyleClass().add("transport-btn");
+        repeatBtn.getStyleClass().add("control-icon-btn");
+
+        Label repeatGlyph = new Label("⟲");
+        repeatGlyph.getStyleClass().add("icon-glyph");
+        Label oneBadge = new Label("1");
+        oneBadge.getStyleClass().add("icon-badge");
+        StackPane repeatIcon = new StackPane(repeatGlyph, oneBadge);
+        repeatBtn.setGraphic(repeatIcon);
+        repeatBtn.setText(null);
+        Label shuffleGlyph = new Label("⇄");          
+        shuffleGlyph.getStyleClass().addAll("icon-glyph", "shuffle-glyph");
+        StackPane shuffleIcon = new StackPane(shuffleGlyph);
+        shuffleBtn.setGraphic(shuffleIcon);
+        shuffleBtn.setText(null);  
 
         HBox controlsBox = new HBox(12, shuffleBtn, prevBtn, playPauseBtn, nextBtn, repeatBtn);
         controlsBox.setAlignment(Pos.CENTER);
+        shuffleBtn.getStyleClass().removeAll("is-on");           
+        repeatBtn.getStyleClass().removeAll("is-on", "is-one"); 
 
         progressSlider.setPrefWidth(360);
         HBox progressBox = new HBox(8, progressSlider, timeLabel);
@@ -93,6 +108,9 @@ public class PlaybackBar {
 
         VBox centerBox = new VBox(6, controlsBox, progressBox);
         centerBox.setAlignment(Pos.CENTER);
+        progressBox.getStyleClass().add("progress-row");   
+        progressSlider.getStyleClass().add("time-slider"); 
+        centerBox.getStyleClass().add("playback-bar"); 
 
         // Seek only on release
         progressSlider.addEventHandler(MouseEvent.MOUSE_PRESSED, e -> {
@@ -154,25 +172,31 @@ public class PlaybackBar {
                 ex -> updateStatus("Next failed: " + ex.getMessage())
             )
         ));
-        final BooleanProperty shuffleOn = new SimpleBooleanProperty(false);
         shuffleBtn.setOnAction(e -> {
-            boolean target = !shuffleOn.get();
-            apiClient.setShuffle(target, () -> {
-                shuffleOn.set(target);
-                shuffleBtn.setOpacity(target ? 1.0 : 0.65);
+            boolean goingOn = !shuffleBtn.getStyleClass().contains("is-on");
+            apiClient.setShuffle(goingOn, () -> {
+                if (goingOn) {
+                    if (!shuffleBtn.getStyleClass().contains("is-on")) shuffleBtn.getStyleClass().add("is-on");
+                } else {
+                    shuffleBtn.getStyleClass().remove("is-on");
+                }
             }, err -> {});
         });
         final StringProperty repeatMode = new SimpleStringProperty("off");
         repeatBtn.setOnAction(e -> {
             String next = switch (repeatMode.get()) {
-                case "off" -> "context";
+                case "off"     -> "context";
                 case "context" -> "track";
-                default -> "off";
+                default        -> "off";
             };
             apiClient.setRepeat(next, () -> {
                 repeatMode.set(next);
-                repeatBtn.setText("Repeat: " + next);
-                repeatBtn.setOpacity("off".equals(next) ? 0.65 : 1.0);
+                repeatBtn.getStyleClass().removeAll("is-on", "is-one");
+                if ("context".equals(next)) {
+                    repeatBtn.getStyleClass().add("is-on");  
+                } else if ("track".equals(next)) {
+                    repeatBtn.getStyleClass().add("is-one"); 
+                }
             }, err -> {});
         });
 
