@@ -35,6 +35,8 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ButtonBar;
 import com.mydj.desktop.ui.util.FxUi;
+import com.mydj.desktop.win.WindowsTitleBar;
+import javafx.scene.image.Image;
 
 public class App extends Application {
 
@@ -214,7 +216,17 @@ public class App extends Application {
 
         stage.setScene(scene);
         stage.setTitle("myDJ Desktop App");
+        stage.getIcons().setAll(
+            new Image(getClass().getResourceAsStream("/icons/app-16.png")),
+            new Image(getClass().getResourceAsStream("/icons/app-24.png")),
+            new Image(getClass().getResourceAsStream("/icons/app-32.png")),
+            new Image(getClass().getResourceAsStream("/icons/app-48.png")),
+            new Image(getClass().getResourceAsStream("/icons/app-64.png")),
+            new Image(getClass().getResourceAsStream("/icons/app-128.png")),
+            new Image(getClass().getResourceAsStream("/icons/app-256.png"))
+        );
         stage.show();
+        WindowsTitleBar.tryEnableDarkTitleBar(stage);
 
         apiClient.checkLogin(isAuthed -> showQr.setDisable(!isAuthed));
         poller.scheduleAtFixedRate(
