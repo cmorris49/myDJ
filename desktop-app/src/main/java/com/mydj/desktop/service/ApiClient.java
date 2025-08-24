@@ -439,11 +439,15 @@ public class ApiClient {
 
     public void logout(Runnable onSuccess, Consumer<Throwable> onError) {
         client.sendAsync(build("POST", "/logout", null), HttpResponse.BodyHandlers.ofString())
-            .thenApply(resp -> { log("POST /logout status=" + resp.statusCode()); return resp; })
+            .thenApply(resp -> {
+                log("POST /logout status=" + resp.statusCode());
+                if (resp.statusCode() / 100 != 2) {
+                    throw new RuntimeException("Logout failed: " + resp.statusCode());
+                }
+                return resp;
+            })
             .thenAccept(r -> {
-                try {
-                    cookieManager.getCookieStore().removeAll();
-                } catch (Exception ignored) {}
+                try { cookieManager.getCookieStore().removeAll(); } catch (Exception ignored) {}
                 Platform.runLater(onSuccess);
             })
             .exceptionally(t -> { Platform.runLater(() -> onError.accept(t)); return null; });

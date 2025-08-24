@@ -218,6 +218,58 @@
   -fx-text-fill: black;
 }
 
+.dialog-pane {
+  -fx-background-color: #000000;
+}
+.dialog-pane > .content,
+.dialog-pane > .content.label {
+  -fx-background-color: transparent;
+  -fx-text-fill: #ffffff;
+}
+
+.dialog-pane:header .header-panel {
+  -fx-background-color: #000000;
+  -fx-border-color: rgba(255,255,255,0.14) transparent transparent transparent;
+  -fx-border-width: 0 0 1 0;
+}
+.dialog-pane:header .header-panel .label {
+  -fx-text-fill: #ffffff;
+  -fx-font-weight: 600;
+}
+
+.dialog-pane .button-bar {
+  -fx-background-color: transparent;
+}
+.dialog-pane .button-bar .button {
+  -fx-text-fill: #ffffff;
+}
+
+.app-dialog {
+  -fx-focus-color: #1DB954;
+  -fx-faint-focus-color: rgba(29,185,84,0.15);
+}
+
+.app-dialog .text-field {
+  -fx-background-color: #222222;
+  -fx-text-fill: #ffffff;
+  -fx-prompt-text-fill: rgba(255,255,255,0.6);
+  -fx-border-color: #1DB954;
+  -fx-border-width: 1;
+  -fx-background-radius: 4;
+  -fx-border-radius: 4;
+}
+
+.app-dialog .check-box {
+  -fx-text-fill: #ffffff;
+  -fx-mark-color: #ffffff;
+}
+.app-dialog .check-box .box {
+  -fx-background-color: #222222;
+  -fx-border-color: #1DB954;
+  -fx-border-width: 1.5;
+  -fx-background-radius: 3;
+  -fx-border-radius: 3;
+}
 
 
 

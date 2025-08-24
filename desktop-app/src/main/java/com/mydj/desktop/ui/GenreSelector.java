@@ -13,6 +13,11 @@ import java.util.*;
 import java.util.function.Consumer;
 import javafx.beans.property.SimpleBooleanProperty;
 import java.util.stream.Collectors;
+import com.mydj.desktop.win.WindowsTitleBar;
+import javafx.stage.Stage;
+import javafx.scene.image.Image;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 
 public class GenreSelector {
 
@@ -103,8 +108,15 @@ public class GenreSelector {
         content.setCenter(listView);
         BorderPane.setMargin(search, new Insets(0, 0, 8, 0));
 
-        dialog.getDialogPane().setContent(new VBox(10, content));
-        dialog.getDialogPane().setPrefWidth(480);
+        VBox wrapper = new VBox(10, content);
+        wrapper.setFillWidth(true);
+        VBox.setVgrow(content, Priority.ALWAYS); 
+
+        listView.setMaxHeight(Double.MAX_VALUE);
+        listView.setMaxWidth(Double.MAX_VALUE);
+
+        dialog.getDialogPane().setContent(wrapper);
+        dialog.getDialogPane().setPrefSize(520, 600); 
         dialog.setResizable(true);
 
         Platform.runLater(() -> {
@@ -115,7 +127,24 @@ public class GenreSelector {
         });
 
         dialog.setResultConverter(bt -> bt == saveBtnType ? new ArrayList<>(allowed) : null);
-
+        dialog.setOnShown(evt -> {
+            Stage dlgStage = (Stage) dialog.getDialogPane().getScene().getWindow();
+            WindowsTitleBar.tryEnableDarkTitleBar(dlgStage);
+        });
+        if (compact.getScene() != null) {
+            dialog.initOwner(compact.getScene().getWindow());
+        }
+        dialog.setOnShown(evt -> {
+            Stage dlgStage = (Stage) dialog.getDialogPane().getScene().getWindow();
+            dlgStage.getIcons().setAll(
+                new Image(getClass().getResourceAsStream("/icons/app-16.png")),
+                new Image(getClass().getResourceAsStream("/icons/app-24.png")),
+                new Image(getClass().getResourceAsStream("/icons/app-32.png")),
+                new Image(getClass().getResourceAsStream("/icons/app-48.png")),
+                new Image(getClass().getResourceAsStream("/icons/app-64.png"))
+            );
+            WindowsTitleBar.tryEnableDarkTitleBar(dlgStage);
+        });
         Optional<List<String>> result = dialog.showAndWait();
         result.ifPresent(selected -> {
             apiClient.sendAllowedGenres(selected,

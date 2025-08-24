@@ -133,10 +133,13 @@ public class App extends Application {
                 ButtonType cancel   = ButtonType.CANCEL;
                 ButtonType signOutB = new ButtonType("Sign out", ButtonBar.ButtonData.OK_DONE);
                 confirm.getButtonTypes().setAll(cancel, signOutB);
-
+                confirm.setTitle("Sign out");
                 FxUi.applySceneStylesToDialog(scene, confirm.getDialogPane());
                 confirm.initOwner(stage);
-
+                confirm.setOnShown(evt -> { 
+                    Stage dlgStage = (Stage) confirm.getDialogPane().getScene().getWindow();
+                    WindowsTitleBar.tryEnableDarkTitleBar(dlgStage);
+                });
                 var res = confirm.showAndWait();
                 if (res.isPresent() && res.get().getButtonData() == ButtonBar.ButtonData.OK_DONE) {
                     apiClient.logout(

@@ -50,8 +50,8 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Map<String, String>> logout() {
+    public ResponseEntity<Void> logout() {
         spotifyService.logout();
-        return ResponseEntity.ok(Map.of("status", "ok"));
+        return ResponseEntity.noContent().build();
     }
 }
