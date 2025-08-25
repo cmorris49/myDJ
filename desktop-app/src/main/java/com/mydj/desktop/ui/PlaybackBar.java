@@ -48,6 +48,7 @@ public class PlaybackBar {
     private boolean isSeeking = false;
     private Timeline smoothUpdater;
     private volatile String currentTrackUri; 
+    private boolean playToggleInFlight = false;
 
     public String getCurrentTrackUri() {
         return currentTrackUri;
@@ -150,20 +151,30 @@ public class PlaybackBar {
             )
         ));
         playPauseBtn.setOnAction(e -> {
-            if (lastState != null && lastState.isPlaying()) {
-                runCmd(() ->
-                    apiClient.pause(
-                        () -> updateStatus("Paused"),
-                        ex -> updateStatus("Pause failed: " + ex.getMessage())
-                    )
-                );
+            if (playToggleInFlight) return;
+            playToggleInFlight = true;
+
+            boolean wantPause = lastState != null && lastState.isPlaying();
+            if (wantPause) {
+                runCmd(() -> apiClient.pause(() -> {
+                    if (lastState != null) lastState.setPlaying(false);
+                    Platform.runLater(() -> playPauseBtn.setText("▶"));
+                    updateStatus("Paused");
+                    playToggleInFlight = false;
+                }, ex -> {
+                    updateStatus("Pause failed: " + ex.getMessage());
+                    playToggleInFlight = false;
+                }));
             } else {
-                runCmd(() ->
-                    apiClient.play(
-                        () -> updateStatus("Playing"),
-                        ex -> updateStatus("Play failed: " + ex.getMessage())
-                    )
-                );
+                runCmd(() -> apiClient.play(() -> {
+                    if (lastState != null) lastState.setPlaying(true);
+                    Platform.runLater(() -> playPauseBtn.setText("⏸"));
+                    updateStatus("Playing");
+                    playToggleInFlight = false;
+                }, ex -> {
+                    updateStatus("Play failed: " + ex.getMessage());
+                    playToggleInFlight = false;
+                }));
             }
         });
         nextBtn.setOnAction(e -> runCmd(() ->
@@ -235,19 +246,20 @@ public class PlaybackBar {
             String newTitle = state.getTrackName() + " - " + state.getArtistName();
             String currentTitle = trackInfo.getText();
             boolean isNewTrack = !newTitle.equals(currentTitle);
+
             int apiProg = state.getProgressMs();
             int lastProg = (lastState != null) ? lastState.getProgressMs() : -1;
+            boolean playStatusChanged = (lastState == null) || (lastState.isPlaying() != state.isPlaying());
 
-            this.currentTrackUri = state.getTrackUri(); 
+            this.currentTrackUri = state.getTrackUri();
 
-            if (isNewTrack || apiProg >= lastProg) {
+            if (isNewTrack || playStatusChanged || apiProg >= lastProg || lastProg < 0) {
                 lastState = state;
                 lastStateFetchTimestamp = now;
                 Platform.runLater(() -> {
                     trackInfo.setText(newTitle);
                     playPauseBtn.setText(state.isPlaying() ? "⏸" : "▶");
 
-                    // album art
                     String url = state.getAlbumImageUrl();
                     if (url != null && !url.isBlank()) {
                         if (!url.equals(currentAlbumUrl)) {
@@ -262,10 +274,8 @@ public class PlaybackBar {
 
                                 if (pending.isBackgroundLoading()) {
                                     pending.progressProperty().addListener((obs, ov, nv) -> {
-                                        if (nv.doubleValue() >= 1.0) {
-                                            if (url.equals(currentAlbumUrl)) {
-                                                albumCover.setImage(pending);
-                                            }
+                                        if (nv.doubleValue() >= 1.0 && url.equals(currentAlbumUrl)) {
+                                            albumCover.setImage(pending);
                                         }
                                     });
                                 } else {

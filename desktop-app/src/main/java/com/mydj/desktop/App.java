@@ -52,6 +52,7 @@ public class App extends Application {
     private Consumer<String> notifier;
     private volatile boolean loggedIn = false;
     private Scene scene; 
+    private volatile boolean forceAccountSwitch = false;
 
     private static long jitterMs(int baseMs) {
         return baseMs + ThreadLocalRandom.current().nextInt(0, 400);
@@ -125,7 +126,18 @@ public class App extends Application {
 
         signIn.setOnAction(e -> {
             if (!loggedIn) {
-                getHostServices().showDocument(BASE_URL + "/login?switch=1");
+                if (forceAccountSwitch) {
+                    getHostServices().showDocument("https://accounts.spotify.com/logout");
+                    poller.schedule(
+                        () -> Platform.runLater(() ->
+                            getHostServices().showDocument(BASE_URL + "/login?switch=1")
+                        ),
+                        1200, java.util.concurrent.TimeUnit.MILLISECONDS
+                    );
+                    forceAccountSwitch = false;
+                } else {
+                    getHostServices().showDocument(BASE_URL + "/login?switch=1");
+                }
             } else {
                 Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
                 confirm.setHeaderText("Sign out?");
@@ -142,14 +154,15 @@ public class App extends Application {
                 });
                 var res = confirm.showAndWait();
                 if (res.isPresent() && res.get().getButtonData() == ButtonBar.ButtonData.OK_DONE) {
-                    apiClient.logout(
-                        () -> {
-                            loggedIn = false;
-                            signIn.setText("Sign in");
-                            status.setText("Signed out");
-                        },
-                        err -> status.setText("Sign out failed: " + (err.getMessage() == null ? err : err.getMessage()))
-                    );
+                apiClient.logout(
+                    () -> {
+                        loggedIn = false;
+                        signIn.setText("Sign in");
+                        status.setText("Signed out");
+                        forceAccountSwitch = true; 
+                    },
+                    err -> status.setText("Sign out failed: " + (err.getMessage() == null ? err : err.getMessage()))
+                );
                 }
             }
         });
