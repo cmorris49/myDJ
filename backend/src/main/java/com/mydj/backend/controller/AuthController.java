@@ -52,9 +52,9 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("accessToken", token == null ? "" : token));
     }
 
-    @PostMapping("/logout")
+    @PostMapping("/api/logout")
     public ResponseEntity<Void> logout() {
-        spotifyService.logout();
-        return ResponseEntity.noContent().build();
+        spotifyService.logout();               
+        return ResponseEntity.noContent().build(); 
     }
 }

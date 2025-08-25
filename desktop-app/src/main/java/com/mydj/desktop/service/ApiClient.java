@@ -438,9 +438,9 @@ public class ApiClient {
     }
 
     public void logout(Runnable onSuccess, Consumer<Throwable> onError) {
-        client.sendAsync(build("POST", "/logout", null), HttpResponse.BodyHandlers.ofString())
+        client.sendAsync(build("POST", "/api/logout", null), HttpResponse.BodyHandlers.ofString())
             .thenApply(resp -> {
-                log("POST /logout status=" + resp.statusCode());
+                log("POST /api/logout status=" + resp.statusCode());
                 if (resp.statusCode() / 100 != 2) {
                     throw new RuntimeException("Logout failed: " + resp.statusCode());
                 }

@@ -2,10 +2,11 @@ package com.mydj.backend.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
 @EnableWebSecurity
@@ -14,8 +15,9 @@ public class SecurityConfig {
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable())
+            .csrf(AbstractHttpConfigurer::disable)
             .cors(Customizer.withDefaults())
+            .logout(AbstractHttpConfigurer::disable) 
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                     // static site
@@ -26,7 +28,9 @@ public class SecurityConfig {
                     "/qr", "/qr-default",
                     // APIs used by the web/desktop
                     "/genres", "/allowedGenres", "/requests/**",
-                    "/playlists/**", "/devices/**", "/playback/**", "/search/**"
+                    "/playlists/**", "/devices/**", "/playback/**", "/search/**",
+                    // API logout endpoint
+                    "/api/logout"
                 ).permitAll()
                 .anyRequest().permitAll()
             )

@@ -22,7 +22,7 @@ public class WebFiltersConfig {
                                             @NonNull FilterChain chain)
                     throws ServletException, IOException {
                 String path = req.getServletPath();
-                if ("/me".equals(path) || "/logout".equals(path)) {
+                if ("/me".equals(path) || "/api/logout".equals(path)) {
                     res.setHeader("Cache-Control", "no-store");
                 }
                 chain.doFilter(req, res);
