@@ -167,10 +167,11 @@ public class SpotifyService {
         try {
             this.accessToken = null;
             this.refreshToken = null;
-            this.currentDeviceId = null; 
+            this.currentDeviceId = null;
             spotifyApi.setAccessToken(null);
             spotifyApi.setRefreshToken(null);
-            persistTokens();
+            try { Files.deleteIfExists(tokenFile);} catch (Exception ignored) {}
+            persistTokens(); 
         } catch (Exception ignored) {}
     }
 
@@ -423,5 +424,9 @@ public class SpotifyService {
         if (resp.statusCode() >= 400) {
             throw new RuntimeException("Playback command failed: " + resp.statusCode() + " / " + resp.body());
         }
+    }
+
+    public synchronized boolean hasUserAuth() {
+        return refreshToken != null && !refreshToken.isBlank();
     }
 }

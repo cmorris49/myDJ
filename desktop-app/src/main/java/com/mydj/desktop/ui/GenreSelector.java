@@ -17,7 +17,6 @@ import com.mydj.desktop.win.WindowsTitleBar;
 import javafx.stage.Stage;
 import javafx.scene.image.Image;
 import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
 
 public class GenreSelector {
 

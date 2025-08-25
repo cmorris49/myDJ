@@ -88,7 +88,7 @@ public class RequestsPane {
                 }
                 setText(display);
 
-                String uri = displayToUri.get(display); // <-- your existing lookup
+                String uri = displayToUri.get(display); 
                 boolean isPlaying = playingUri != null && playingUri.equals(uri);
                 pseudoClassStateChanged(PC_PLAYING, isPlaying);
             }
@@ -113,7 +113,7 @@ public class RequestsPane {
                 }
                 setText(display);
 
-                String uri = displayToUri.get(display); // <-- your existing lookup
+                String uri = displayToUri.get(display); 
                 boolean isPlaying = playingUri != null && playingUri.equals(uri);
                 pseudoClassStateChanged(PC_PLAYING, isPlaying);
             }

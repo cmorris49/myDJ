@@ -35,6 +35,9 @@ public class AuthController {
 
     @GetMapping("/me")
     public ResponseEntity<Map<String, String>> me() {
+        if (!spotifyService.hasUserAuth()) {
+            return ResponseEntity.status(401).body(Map.of("error", "NOT_AUTHENTICATED"));
+        }
         try {
             var me = spotifyService.getCurrentUserProfile();
             return ResponseEntity.ok(Map.of("id", me.getId(), "name", me.getDisplayName()));
