@@ -125,7 +125,7 @@ public class App extends Application {
 
         signIn.setOnAction(e -> {
             if (!loggedIn) {
-                getHostServices().showDocument(BASE_URL + "/login");
+                getHostServices().showDocument(BASE_URL + "/login?switch=1");
             } else {
                 Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
                 confirm.setHeaderText("Sign out?");

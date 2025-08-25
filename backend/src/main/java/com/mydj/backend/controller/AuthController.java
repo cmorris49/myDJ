@@ -1,9 +1,11 @@
 package com.mydj.backend.controller;
 
 import com.mydj.backend.service.SpotifyService;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.io.IOException;
 import java.net.URI;
 import java.util.Map;
 
@@ -17,9 +19,20 @@ public class AuthController {
     }
 
     @GetMapping("/login")
-    public ResponseEntity<Void> login() {
-        URI uri = spotifyService.buildAuthorizationUri();
-        return ResponseEntity.status(HttpStatus.FOUND).location(uri).build();
+    public void login(
+            @RequestParam(value = "switch", required = false, defaultValue = "false") boolean forceSwitch,
+            HttpServletResponse resp
+    ) throws IOException {
+        String authorizeUrl = spotifyService.buildAuthorizationUri().toString();
+        if (forceSwitch) {
+            authorizeUrl = addShowDialog(authorizeUrl);
+        }
+        resp.sendRedirect(authorizeUrl);
+    }
+
+    private static String addShowDialog(String url) {
+        if (url.contains("show_dialog=true")) return url;
+        return url + (url.contains("?") ? "&" : "?") + "show_dialog=true";
     }
 
     @GetMapping("/callback")
