@@ -1,0 +1,40 @@
+# Java / Maven
+target/
+*.class
+*.log
+*.jar
+
+# Desktop app builds 
+desktop-app/target/
+desktop-app/dist/
+desktop-app/*.zip
+dist/
+out/
+build/
+
+# Node / web 
+node_modules/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local env/config backups
+*.env
+.env*
+application-*.properties
+
+target/
+**/target/
+
+# Desktop app
+desktop-app/dist/
+desktop-app/*.zip
+
+backend/target/
+desktop-app/target/

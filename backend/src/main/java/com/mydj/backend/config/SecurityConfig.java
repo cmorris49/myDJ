@@ -30,7 +30,9 @@ public class SecurityConfig {
                     "/genres", "/allowedGenres", "/requests/**",
                     "/playlists/**", "/devices/**", "/playback/**", "/search/**",
                     // API logout endpoint
-                    "/api/logout"
+                    "/api/logout",
+                    // downloads
+                    "/download", "/download/**"
                 ).permitAll()
                 .anyRequest().permitAll()
             )

@@ -29,3 +29,10 @@ Thumbs.db
 
 # Java
 *.class
+
+desktop-app/target/
+desktop-app/dist/
+desktop-app/*.zip
+dist/
+out/
+build/
